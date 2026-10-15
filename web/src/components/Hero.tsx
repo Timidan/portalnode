@@ -7,7 +7,7 @@ import { type Load, type Network, fmtPOT } from '../lib/api';
 
 const INSTALL = 'docker compose up -d';
 const FOOTAGE = '/footage/fiber-optic-14886-720.mp4';
-const NAV = [['Network', '#network'], ['How it works', '#how'], ['Console', '#console'], ['Nominators', '#nominators']] as const;
+const NAV = [['Network', '#network'], ['How it works', '#how'], ['Console', '/console'], ['Nominators', '#nominators']] as const;
 
 const rise = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },

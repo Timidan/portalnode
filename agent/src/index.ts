@@ -211,7 +211,10 @@ if (config.mode === 'operator') {
   });
 }
 const webDist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');
-if (existsSync(webDist)) app.use(express.static(webDist));
+if (existsSync(webDist)) {
+  app.use(express.static(webDist));
+  app.get(/^\/console(\/.*)?$/, (_req, res) => res.sendFile(resolve(webDist, 'index.html')));
+}
 
 async function start() {
   const client = await connect();

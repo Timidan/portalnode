@@ -1,8 +1,11 @@
+import { lazy, Suspense } from 'react';
 import { ConsolePreview, Footer, LiveNumbers, NominatorCheck, Steps } from './components/Sections';
 import { Hero } from './components/Hero';
 import { useNetwork } from './lib/api';
 
-export default function App() {
+const Console = lazy(() => import('./console/Console'));
+
+function Landing() {
   const net = useNetwork();
   return (
     <main>
@@ -14,4 +17,11 @@ export default function App() {
       <Footer />
     </main>
   );
+}
+
+export default function App() {
+  if (location.pathname.startsWith('/console')) {
+    return <Suspense fallback={null}><Console /></Suspense>;
+  }
+  return <Landing />;
 }
