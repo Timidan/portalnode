@@ -1,0 +1,14 @@
+{
+  "node": {
+    "source": "https://github.com/portaldotVolunteer/Portaldot-node",
+    "commit": "1ff0b2b3dc85925a91c6f1483567582fca0c79cd",
+    "file": "portaldot-mainnet-ubuntu.tar.gz",
+    "sha256": "539a43dbb37da8d0f60822bc5b3dd15556cdae7c30f02b1d2eb2f83a9ba7ad0a",
+    "binary_version": "portaldot 2.0.0-unknown-x86_64-linux-gnu",
+    "binary_built": "2021-06-24",
+    "chain_spec": "pot_mainnet_spec_raw.json (in the tarball; chainType Live, protocolId pot-main)",
+    "genesis": "0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b8a54",
+    "runtime_on_chain": "portaldot/1002",
+    "note": "The hash proves these exact bytes, not who built them; upstream publishes no checksums or releases."
+  }
+}

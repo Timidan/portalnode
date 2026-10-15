@@ -1,0 +1,45 @@
+# PortalNode: a Portaldot node plus the PortalNode agent in one network namespace.
+# Only P2P (30333) is public. The console is published on the host's loopback;
+# reach it remotely with an SSH tunnel: ssh -L 8080:127.0.0.1:8080 your-server
+name: portalnode
+
+services:
+  node:
+    build: ./node
+    command: ["--name", "${NODE_NAME:-portalnode}"]
+    volumes:
+      - node-data:/data
+    ports:
+      - "30333:30333"
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    stop_grace_period: 2m
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  agent:
+    build:
+      context: ..
+      dockerfile: deploy/agent.Dockerfile
+    network_mode: "service:node"
+    depends_on: [node]
+    env_file: .env
+    environment:
+      PORTALNODE_MODE: operator
+      PORTALNODE_RPC: ws://127.0.0.1:9944
+      PORTALNODE_NODE_RPC: http://127.0.0.1:9933
+      PORTALNODE_METRICS: http://127.0.0.1:9615/metrics
+      PORTALNODE_DB: /state/portalnode.db
+      PORT: "8080"
+    volumes:
+      - agent-data:/state
+      - ./secrets:/run/secrets:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+volumes:
+  node-data: {}
+  agent-data: {}
