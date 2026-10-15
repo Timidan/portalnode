@@ -1,8 +1,8 @@
 import * as k from './iso/iso-kit';
 import * as G from './iso/lathe.mjs';
 export const WIDTH = 760, HEIGHT = 590;
-export const BASE: k.Plan = { x: -153, y: -49, w: 324, d: 185, r: 12 };
-export const P = k.fitProjection([...k.boxCorners(BASE, -18, 0), [-93,-30,265], [57,36,265], [-18,0,280], [139,24,202]], WIDTH, HEIGHT, {pad: 42, azimuth: 65, elevation: 23});
+export const BASE: k.Plan = { x: -153, y: -133, w: 324, d: 269, r: 12 };
+export const P = k.fitProjection([...k.boxCorners(BASE, -18, 0), [-93,-114,265], [57,-48,265], [-18,-84,280], [139,24,202]], WIDTH, HEIGHT, {pad: 42, azimuth: 115, elevation: 23});
 export const at = (p:k.Point3) => k.iso(p,P);
 export const front = (x:number,y:number,z:number) => G.frameOf([x,y,z],[0,1,0],[1,0,0],[0,0,1]);
 export const upright = (x:number,y:number,z:number) => G.frameOf([x,y,z],[0,0,1],[1,0,0],[0,1,0]);
