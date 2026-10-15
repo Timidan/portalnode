@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Geist Variable', ui-sans-serif, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
+  --color-paper: #0a0a0b;
+  --color-ink: #efe9dc;
+  --color-card: #141416;
+  --color-accent: #ffb000;
+  --color-con: #17171a;
+  --color-con-fg: #efe9dc;
+  --color-muted: #8f897c;
+  --color-faint: #5d5850;
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-amber: #f79b4d;
+  --color-mint: #6ee7b7;
+  --color-coral: #e8613c;
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.011em;
+  scroll-behavior: smooth;
+}
+@media (min-width: 1440px) {
+  html { font-size: 18px; }
+}
+::selection { background: var(--color-accent); color: white; }
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+.display { font-family: var(--font-display); font-weight: 560; letter-spacing: -0.045em; line-height: 0.98; }
+
+
+
+.marquee { mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent); }
+.marquee-track { animation: marquee 40s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  html { scroll-behavior: auto; }
+}
