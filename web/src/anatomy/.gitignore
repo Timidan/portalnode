@@ -1,0 +1,6 @@
+.build/
+shots/*
+!shots/audit-final.txt
+!shots/lines-final-*.txt
+!shots/full-1440-dark.png
+!shots/full-390-dark.png

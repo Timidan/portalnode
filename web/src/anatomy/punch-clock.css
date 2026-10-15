@@ -1,0 +1,15 @@
+.pn-clock.iso{--anatomy-page:#0a0a0b;--anatomy-card:#0a0a0b;--anatomy-paper:#0a0a0b;--anatomy-face:#191918;--anatomy-top:#20201e;--anatomy-shade-0:#0e0e0f;--anatomy-shade-1:#131314;--anatomy-shade-2:#181818;--anatomy-shade-3:#1c1c1b;--anatomy-text:#c1bdb2;--anatomy-strong:#efe9dc;--anatomy-muted:#777870;--anatomy-hi:#d4cfc2;--anatomy-mid:#77776f;--anatomy-lo:#42433e;--anatomy-faint:#292b28;--anatomy-lit:#ffb000;--anatomy-lit-top:#332817;--anatomy-lit-shade:#282115;--anatomy-dot:#efe9dc;color:var(--anatomy-text);font-family:inherit;max-width:100%;}
+.pn-clock.iso[data-theme="light"]{--anatomy-page:#f2f2ef;--anatomy-card:#fbfbfa;--anatomy-paper:#fbfbfa;--anatomy-face:#fff;--anatomy-top:#fff;--anatomy-shade-0:#dcdcd9;--anatomy-shade-1:#e5e5e2;--anatomy-shade-2:#ededea;--anatomy-shade-3:#f4f4f1;--anatomy-text:#57575a;--anatomy-strong:#18181a;--anatomy-muted:#71716e;--anatomy-hi:#26262a;--anatomy-mid:#8a8a8f;--anatomy-lo:#b4b4b8;--anatomy-faint:#d4d4d6;--anatomy-lit:#946000;--anatomy-lit-top:#fff0c7;--anatomy-lit-shade:#f4dfa7;--anatomy-dot:#3a3a3e;}
+.pn-clock .iso-figure{margin:0;}
+.pn-clock .iso-plate{padding:42px 12px 54px;box-shadow:inset 0 0 0 1px var(--anatomy-faint);}
+.pn-clock .iso-plate-corners{inset:21px 22px;}
+.pn-clock .iso-plate-corner{font-size:10px;}
+.pn-clock .iso-legend{font-size:11px;gap:12px;margin:17px 0 0;line-height:1.7;}
+.pn-clock .iso-keys{gap:8px 22px;color:var(--anatomy-text);font-family:var(--anatomy-mono);font-size:10px;}
+.pn-clock .iso-caption{max-width:77ch;}
+.pn-clock-stage{outline:none;touch-action:pan-y;cursor:ew-resize;}
+.pn-clock-stage:focus-visible{outline:1px solid var(--anatomy-mid);outline-offset:1px;}
+.pn-hand{stroke-width:1.15px;}
+.pn-punch-hole{fill:var(--anatomy-card);stroke:var(--anatomy-lit);stroke-width:.6px;}
+.pn-sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;}
+@media(max-width:560px){.pn-clock .iso-plate{padding:39px 0 67px;overflow:hidden}.pn-clock .iso-plate-corners{inset:17px 15px}.pn-clock .iso-plate-corner{font-size:9px}.pn-clock .iso-plate-corner[data-corner="hint"]{bottom:20px}.pn-clock .iso-plate-corner[data-corner="readout"]{right:0;bottom:0}.pn-clock .iso-svg{width:112%;max-width:none;margin-left:-6%}.pn-clock .iso-keys{gap:6px 16px}.pn-clock .iso-legend{font-size:11px;}}

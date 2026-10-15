@@ -1,0 +1,24 @@
+import type { Point3, Projection, SolidPaths, Flat } from './iso-kit';
+export interface Frame { o: Point3; a: Point3; u: Point3; v: Point3 }
+export type Profile = number[][];
+export function frameAlong(o: Point3, a: Point3): Frame;
+export function frameOf(o: Point3, a: Point3, u: Point3, v: Point3): Frame;
+export function pointOf(f: Frame, s: number, r: number, angle: number): Point3;
+export function viewOf(p: Projection): Point3;
+export function dot3(a: Point3,b: Point3): number;
+export function add3(a: Point3,b: Point3): Point3;
+export function sub3(a: Point3,b: Point3): Point3;
+export function mul3(a: Point3,s: number): Point3;
+export function unit3(a: Point3): Point3;
+export function cross3(a: Point3,b: Point3): Point3;
+export function toneOf(n: Point3,p: Projection): number;
+export function disc(a:number,b:number,r:number,f:Frame,p:Projection,opts?:object): SolidPaths;
+export function ringBand(a:number,b:number,ri:number,ro:number,f:Frame,p:Projection,opts?:object): SolidPaths;
+export function solidOf(profile:Profile,f:Frame,p:Projection,opts?:object): SolidPaths;
+export function prismOf(f:Frame,polygon:Flat[],a:number,b:number,p:Projection): SolidPaths;
+export function sphereOf(c:Point3,r:number,p:Projection,opts?:object): SolidPaths;
+export function circleOf(f:Frame,s:number,r:number,p:Projection,steps?:number): string;
+export function arcOf(f:Frame,s:number,r:number,p:Projection,opts?:object): string;
+export function ribsOf(f:Frame,s0:number,s1:number,r:number,count:number,p:Projection,opts?:object): string;
+export function dotsOf(f:Frame,s:number,r:number,count:number,p:Projection,opts?:object): Flat[];
+export function rodOut(f:Frame,from:number,to:number,r:number,p:Projection,opts:object): {paths:SolidPaths;clip:string};

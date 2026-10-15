@@ -1,0 +1,1 @@
+Anatomy kit by Ryan (https://github.com/wheresryan22/anatomy), copied from the user's chosen installed skill on 2026-10-15. MIT license; see LICENSE. Kit source is retained intact. PortalNode's punch clock geometry, model and React component are original work in the parent directory.

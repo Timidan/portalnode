@@ -1,0 +1,3 @@
+line ends: 0 of 304 ends on 89 lines float
+shot web/src/anatomy/shots/lines-final-dark.png
+console: clean
