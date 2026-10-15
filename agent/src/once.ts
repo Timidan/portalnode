@@ -28,3 +28,4 @@ try {
   console.error(JSON.stringify({ action: 'error', reason: (e as Error).message }));
   process.exitCode = 1;
 }
+process.exit();

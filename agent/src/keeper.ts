@@ -282,8 +282,7 @@ export async function runOnce(force = false) {
       runtimeVersion: c.runtimeVersion,
       tip: 0,
     });
-    const txHash = tx.hash.toHex(),
-      txHex = tx.toHex();
+    const txHash = tx.hash.toHex();
     const inserted = db
       .prepare(
         `INSERT INTO tx_attempts(genesis,validator,era,page,signer,nonce,runtime_fingerprint,call_hex,tx_hash,birth,death,fee_reserved,fee_quoted,reserved_at,status)
@@ -306,10 +305,9 @@ export async function runOnce(force = false) {
         new Date().toISOString(),
       );
     if (process.env.PORTALNODE_CRASH_AFTER_PERSIST === '1') process.exit(75);
-    const txSigned: any = c.createType('Extrinsic', txHex);
     const receipt = await new Promise<any>((resolve, reject) => {
       let unsub: (() => void) | undefined;
-      void txSigned
+      void tx
         .send(async (result: any) => {
           if (result.status.isInBlock || result.status.isFinalized) {
             if (result.status.isFinalized) {

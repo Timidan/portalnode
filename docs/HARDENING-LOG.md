@@ -31,6 +31,11 @@ Experiments run in scratch, outside this repo, before the coding window. Each li
 - Rerun of the same claim: tx `0x545c26f9…9485a93` rejected with `staking.AlreadyClaimed` (module 9, error 14, decoded via the `DispatchErrorModule` override). The failed call still paid its fee, so the keeper must never retry blindly.
 - Result: permissionless third-party payout works on runtime 1002, the claim marker prevents double payment, and errors decode. G2 legacy-runtime experiment: PASS. V3 still untested.
 
+## 15 Oct 2026, 22:46 UTC: keeper e2e on the dev chain, steps 1–2 PASS
+- First run failed: after signing, `keeper.ts` rebuilt the tx with `createType('Extrinsic', hex)`, which has no `send()` ("txSigned.send is not a function"); `once.ts` then hung because the open WS kept Node alive. Fixed by sending the signed `tx` directly and exiting after the one-shot run.
+- Rerun: the keeper (Bob, third party) claimed Alice's era: tx `0xcdd8b61b…981f16`, finalized `0x140d3612…b2184`, extrinsic index 1, paid 79161591859790 (79.16 at the dev chain's default 12 decimals). Rerun: no claimable era, nothing submitted.
+- Steps 3–4 (crash after persisting a signed attempt, then restart reconcile) wait for the next dev-chain era.
+
 ## Pending
 - Corrected reward numbers with the fork formula, validated against a real mainnet payout: Codex.
 - Prove one wallet signing on runtime 1002 (needs the user's browser and a dev account): after kick-off.
