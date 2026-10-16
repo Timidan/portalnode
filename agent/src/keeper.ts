@@ -131,9 +131,10 @@ async function reconcile(client: ApiPromise) {
         );
         continue;
       }
-      const account: any = await client.query.system.account(a.signer),
+      const account: any = await (await client.at(headHash)).query.system.account(a.signer),
         nonce = BigInt(account.nonce.toString());
-      if (nonce === BigInt(a.nonce) && head > a.death)
+      if (nonce === BigInt(a.nonce) && head <= a.death) continue;
+      if (nonce === BigInt(a.nonce))
         db.prepare(
           "UPDATE tx_attempts SET status='dropped',error='mortality expired; nonce unchanged' WHERE id=?",
         ).run(a.id);

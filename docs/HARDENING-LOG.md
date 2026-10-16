@@ -31,10 +31,12 @@ Experiments run in scratch, outside this repo, before the coding window. Each li
 - Rerun of the same claim: tx `0x545c26f9…9485a93` rejected with `staking.AlreadyClaimed` (module 9, error 14, decoded via the `DispatchErrorModule` override). The failed call still paid its fee, so the keeper must never retry blindly.
 - Result: permissionless third-party payout works on runtime 1002, the claim marker prevents double payment, and errors decode. G2 legacy-runtime experiment: PASS. V3 still untested.
 
-## 15 Oct 2026, 22:46 UTC: keeper e2e on the dev chain, steps 1–2 PASS
+## 15 Oct 2026, 22:46 UTC: keeper e2e on the dev chain, steps 1–5 PASS after two fixes
 - First run failed: after signing, `keeper.ts` rebuilt the tx with `createType('Extrinsic', hex)`, which has no `send()` ("txSigned.send is not a function"); `once.ts` then hung because the open WS kept Node alive. Fixed by sending the signed `tx` directly and exiting after the one-shot run.
 - Rerun: the keeper (Bob, third party) claimed Alice's era: tx `0xcdd8b61b…981f16`, finalized `0x140d3612…b2184`, extrinsic index 1, paid 79161591859790 (79.16 at the dev chain's default 12 decimals). Rerun: no claimable era, nothing submitted.
-- Steps 3–4 (crash after persisting a signed attempt, then restart reconcile) wait for the next dev-chain era.
+- Step 3 PASS: crash right after persisting a signed attempt exits 75.
+- Step 4 first FAILED: on restart, `reconcile` paused the never-broadcast attempt with a critical alert while its mortality window was still open, contradicting ARCHITECTURE rule 5 (stay unresolved until included, or dropped once the window passes with the nonce unchanged). Every crash would have stopped the keeper. Fixed: inside the window with an unchanged nonce the attempt stays unresolved; the nonce is read at the finalized head.
+- 16 Oct, 00:41 UTC, rerun on the same DB: attempt 2 dropped after its window (block 4890); crash persisted attempt 3 (exit 75); immediate restart left it unresolved, signed nothing and raised no alert; after block 4957 it was dropped and era 2 was claimed: attempt 4 settled, tx `0x3357ba05…5525a1`, paid 79161571515094. Log: keeper-reconcile.log.
 
 ## Pending
 - Corrected reward numbers with the fork formula, validated against a real mainnet payout: Codex.
