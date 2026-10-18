@@ -54,6 +54,8 @@ const units = (s: string) => {
   const [a, b = ''] = s.split('.');
   return BigInt(a) * pot + BigInt((b + '00000000000000').slice(0, 14));
 };
+const rewardAmount = (ev: any) => BigInt((ev.method === 'Rewarded' ? ev.data[2] : ev.data[1]).toString());
+
 async function reconcile(client: ApiPromise) {
   const pending = db
     .prepare("SELECT * FROM tx_attempts WHERE status IN ('unresolved','paused') ORDER BY id")
@@ -78,7 +80,7 @@ async function reconcile(client: ApiPromise) {
           r.phase.isApplyExtrinsic &&
           r.phase.asApplyExtrinsic.toNumber() === found!.index &&
           r.event.section === 'staking' &&
-          r.event.method === 'Reward',
+          (r.event.method === 'Reward' || r.event.method === 'Rewarded'),
       );
       const failed = records.find(
         (r) =>
@@ -86,7 +88,7 @@ async function reconcile(client: ApiPromise) {
           r.phase.asApplyExtrinsic.toNumber() === found!.index &&
           r.event.method === 'ExtrinsicFailed',
       );
-      const paid = rewards.reduce((n, r) => n + BigInt((r.event.data as any)[1].toString()), 0n).toString();
+      const paid = rewards.reduce((n, r) => n + rewardAmount(r.event), 0n).toString();
       const feeEvent = records.find(
         (r) =>
           r.phase.isApplyExtrinsic &&
@@ -189,11 +191,9 @@ export async function runOnce(force = false) {
       alert('runtime-refresh-mismatch', 'runtime-change', 'critical', shape.fingerprint);
       throw new Error('Runtime changed since payout planning; keeper paused');
     }
-    if (
-      shape.payoutMode === 'none' ||
-      shape.payoutMode === 'explicit-page' ||
-      shape.payoutMode === 'next-page'
-    ) {
+    const byPage = shape.payoutMode === 'explicit-page',
+      pageRow = p.page >= 0;
+    if (shape.payoutMode === 'none' || shape.payoutMode === 'next-page' || byPage !== pageRow) {
       db.prepare(
         "UPDATE payouts SET status='terminal',reason=? WHERE genesis=? AND validator=? AND era=? AND page=?",
       ).run(
@@ -206,23 +206,28 @@ export async function runOnce(force = false) {
       continue;
     }
     const q: any = at.query;
-    const min: any = await q.staking.historyDepth(),
+    const min: any = q.staking.historyDepth?.() ?? (at.consts.staking as any).historyDepth,
       active: any = await q.staking.activeEra();
     const [depth, activeEra] = await Promise.all([min, active]);
     const current = (await q.staking.currentEra()).unwrap().toNumber(),
       eActive = activeEra.unwrap().index.toNumber(),
       eMin = Math.max(0, current - depth.toNumber());
     if (p.era < eMin || p.era >= eActive) continue;
-    const ledger: any = await q.staking.ledger(p.validator),
-      ledgerData = ledger.isSome ? ledger.unwrap() : null;
-    if (!ledgerData || [...(ledgerData.claimedRewards as any)].some((x: any) => x.toNumber() === p.era)) {
+    const ledger: any = byPage ? null : await q.staking.ledger(p.validator),
+      ledgerData = ledger?.isSome ? ledger.unwrap() : null;
+    const done = byPage
+      ? [...(await q.staking.claimedRewards(p.era, p.validator))].some((x: any) => x.toNumber() === p.page)
+      : !ledgerData || [...(ledgerData.claimedRewards as any)].some((x: any) => x.toNumber() === p.era);
+    if (done) {
       db.prepare(
         "UPDATE payouts SET status='terminal',reason='already claimed or missing ledger' WHERE genesis=? AND validator=? AND era=? AND page=?",
       ).run(c.genesisHash.toHex(), p.validator, p.era, p.page);
       continue;
     }
     if (!config.allowlist.includes(p.validator)) continue;
-    const tx = c.tx.staking.payoutStakers(p.validator, p.era);
+    const tx = byPage
+      ? c.tx.staking.payoutStakersByPage(p.validator, p.era, p.page)
+      : c.tx.staking.payoutStakers(p.validator, p.era);
     const nonce = await c.rpc.system.accountNextIndex(pair.address);
     const blockHash = hash,
       header = await c.rpc.chain.getHeader(hash),
@@ -342,7 +347,7 @@ export async function runOnce(force = false) {
         r.phase.isApplyExtrinsic &&
         r.phase.asApplyExtrinsic.toNumber() === index &&
         r.event.section === 'staking' &&
-        r.event.method === 'Reward',
+        (r.event.method === 'Reward' || r.event.method === 'Rewarded'),
     );
     const failed = events.find(
       (r) =>
@@ -350,9 +355,7 @@ export async function runOnce(force = false) {
         r.phase.asApplyExtrinsic.toNumber() === index &&
         r.event.method === 'ExtrinsicFailed',
     );
-    const paid = rewardEvents
-      .reduce((n, r) => n + BigInt((r.event.data as any)[1].toString()), 0n)
-      .toString();
+    const paid = rewardEvents.reduce((n, r) => n + rewardAmount(r.event), 0n).toString();
     const feeEvent = events.find(
       (r) =>
         r.phase.isApplyExtrinsic &&

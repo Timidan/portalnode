@@ -1,4 +1,5 @@
 import { ApiPromise, HttpProvider } from '@polkadot/api';
+import { LEGACY_TYPES } from './chain.js';
 import { config } from './config.js';
 import { db } from './db.js';
 
@@ -37,7 +38,7 @@ export async function sampleNode() {
       if (!nodeApi) {
         nodeApi = new ApiPromise({
           provider: new HttpProvider(config.nodeRpc),
-          types: { DispatchErrorModule: { index: 'u8', error: 'u8' } },
+          typesBundle: LEGACY_TYPES,
         });
         await nodeApi.isReadyOrError;
       }

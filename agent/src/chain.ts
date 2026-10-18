@@ -13,6 +13,13 @@ export type Capabilities = {
   runtime: { name: string; version: number; codeHash: string };
   gaps: string[];
 };
+export const LEGACY_TYPES = {
+  spec: {
+    portaldot: {
+      types: [{ minmax: [0, undefined], types: { DispatchErrorModule: { index: 'u8', error: 'u8' } } }],
+    },
+  },
+} as any;
 export let api: ApiPromise | null = null;
 export let capabilities: Capabilities | null = null;
 const capabilityCache = new Map<string, Capabilities>();
@@ -21,7 +28,7 @@ export async function connect(): Promise<ApiPromise> {
   if (api?.isConnected) return api;
   const next = new ApiPromise({
     provider: new WsProvider(config.rpc, 2500, {}, 30_000),
-    types: { DispatchErrorModule: { index: 'u8', error: 'u8' } },
+    typesBundle: LEGACY_TYPES,
   });
   api = next;
   await next.isReadyOrError;

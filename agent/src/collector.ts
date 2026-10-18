@@ -54,7 +54,7 @@ export async function collect() {
       q.timestamp.now(),
       hasStaking ? q.staking.activeEra() : null,
       hasStaking ? q.staking.currentEra() : null,
-      hasStaking ? q.staking.historyDepth() : null,
+      hasStaking ? (q.staking.historyDepth?.() ?? (at.consts.staking as any).historyDepth) : null,
       (at.query.session as any)?.validators?.() ?? null,
       hasStaking ? q.staking.validatorCount() : null,
       hasStaking ? q.staking.validators.entries() : [],
@@ -105,13 +105,19 @@ export async function collect() {
       if (opt.isSome) {
         const v = opt.unwrap();
         ledgerByStash.set(addr(v.stash), {
-          claimed: new Set([...v.claimedRewards].map(num)),
+          claimed: new Set([...(v.claimedRewards ?? v.legacyClaimedRewards ?? [])].map(num)),
           active: bi(v.active),
         });
       }
     const eraMin = Math.max(0, (currentEra ?? 0) - num(historyOpt ?? 0));
     const rewardRows = new Map<string, any[]>();
     const formulaVerified = shape.runtime.name === 'portaldot' && shape.runtime.version === 1002;
+    const paged = shape.payoutMode === 'explicit-page';
+    const formula = formulaVerified
+      ? 'portaldot-fork stake-weighted'
+      : paged
+        ? 'points share of the era payout'
+        : null;
     let unclaimed = 0n;
     const eras = new Map<string, any>();
     let expiry: (era: number) => bigint | null = () => null;
@@ -191,6 +197,47 @@ export async function collect() {
           rewardRows.set(n.who, rows);
         }
     }
+    if (paged && era !== null)
+      for (let e = eraMin; e < era; e++) {
+        const pool = payoutByEra.get(e),
+          rp: any = pointsByEra.get(e);
+        if (!pool || !rp || !bi(rp.total)) continue;
+        const who = [...rp.individual].map(([w, p]: any[]) => [addr(w), bi(p)] as const);
+        const [overviews, claims] = await Promise.all([
+          Promise.all(who.map(([v]) => q.staking.erasStakersOverview(e, v))),
+          Promise.all(who.map(([v]) => q.staking.claimedRewards(e, v))),
+        ]);
+        who.forEach(([validator, point], i) => {
+          if (overviews[i].isNone) return;
+          const o = overviews[i].unwrap(),
+            pages = num(o.pageCount) || (bi(o.own) > 0n ? 1 : 0),
+            claimedPages = new Set([...claims[i]].map(num)),
+            gross = (pool * point) / bi(rp.total),
+            expires = expiry(e);
+          for (let page = 0; page < pages; page++) {
+            const claimed = claimedPages.has(page),
+              share = gross / BigInt(pages),
+              expiring = !claimed && expires !== null && expires <= BigInt(num(timestamp) + Number(WEEK));
+            if (!claimed) unclaimed += share;
+            if (expiring) {
+              expiringByEra.set(e, (expiringByEra.get(e) ?? 0n) + share);
+              expiringRows.push({
+                era: e,
+                projectedExpiryUtc: new Date(Number(expires)).toISOString(),
+                grossPOT: decimal(share),
+              });
+            }
+            eras.set(`${e}:${validator}:${page}`, {
+              era: e,
+              validator,
+              page,
+              estimatedPOT: decimal(share),
+              status: claimed ? 'claimed' : expiring ? 'expiring' : 'claimable',
+              claimed,
+            });
+          }
+        });
+      }
     const validators = new Set(candidates);
     const currentExposures = new Map<string, ReturnType<typeof clipped>>(
       entries(expEntries)
@@ -292,10 +339,10 @@ export async function collect() {
       concentration: { top1Pct: share(1), top3Pct: share(3), top5Pct: share(5) },
       finality,
       rewards: {
-        unclaimedGrossPOT: formulaVerified ? decimal(unclaimed) : null,
-        expiring7dPOT: formulaVerified ? decimal(sum([...expiringByEra.values()])) : null,
-        estimate: formulaVerified,
-        formula: formulaVerified ? 'portaldot-fork stake-weighted' : null,
+        unclaimedGrossPOT: formula ? decimal(unclaimed) : null,
+        expiring7dPOT: formula ? decimal(sum([...expiringByEra.values()])) : null,
+        estimate: Boolean(formula),
+        formula,
         expiringEras: [...expiringByEra]
           .sort(([a], [b]) => a - b)
           .map(([era, grossPOT]) => ({

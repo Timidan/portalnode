@@ -38,6 +38,14 @@ Experiments run in scratch, outside this repo, before the coding window. Each li
 - Step 4 first FAILED: on restart, `reconcile` paused the never-broadcast attempt with a critical alert while its mortality window was still open, contradicting ARCHITECTURE rule 5 (stay unresolved until included, or dropped once the window passes with the nonce unchanged). Every crash would have stopped the keeper. Fixed: inside the window with an unchanged nonce the attempt stays unresolved; the nonce is read at the finalized head.
 - 16 Oct, 00:41 UTC, rerun on the same DB: attempt 2 dropped after its window (block 4890); crash persisted attempt 3 (exit 75); immediate restart left it unresolved, signed nothing and raised no alert; after block 4957 it was dropped and era 2 was claimed: attempt 4 settled, tx `0x3357ba05…5525a1`, paid 79161571515094. Log: keeper-reconcile.log.
 
+## 18 Oct 2026: V3 testnet is live with staking
+- Endpoint moved to `wss://test-node-v3.portaldot.dev` (EVM `https://test-evm-rpc-v3.portaldot.dev`, chain ID 420420777; explorer https://node-console.portaldot.dev). Runtime `portaldot-v3` 3002, metadata v16, 69 pallets incl. Staking, NominationPools, Revive. 6 s blocks, 600-block sessions, 6 sessions per era (6 h eras), history depth 84, tPOT with 14 decimals, ED 0.1 tPOT.
+- Paged staking: `payoutStakersByPage(stash, era, page)`, `erasStakersOverview`, per-page `claimedRewards(era, stash)`, event `Rewarded {stash, dest, amount}`, `historyDepth` is a constant. Two validators with only their own stake show `pageCount 0`, yet still have one payable page (page 0).
+- Nobody claims: every era 1–24 is unclaimed for both validators, 48 payouts, 82.44 tPOT by points share.
+- Agent changes: the 1002 `DispatchErrorModule` override now applies only to specName `portaldot` (checked: 1002 decodes 2-byte, V3 keeps the metadata's `[u8;4]`); collector lists paged payouts; keeper signs `payoutStakersByPage` and matches `Rewarded`. Observer run on V3: explicit-page, no capability gaps, 48 planned. `AuthorizeCall` and `EthSetOrigin` extensions carry no data, so polkadot.js signs valid extrinsics; the runtime quoted 0.016 tPOT per payout.
+- Not yet run: a signed V3 payout (keeper account holds 0 tPOT; the registration account holds 500).
+- The local dev chain cannot restart: its container mounted the node binary from a /tmp scratch folder that the reboot wiped. Chain data is intact in the `portalnode-devchain` volume.
+
 ## Pending
 - Corrected reward numbers with the fork formula, validated against a real mainnet payout: Codex.
 - Prove one wallet signing on runtime 1002 (needs the user's browser and a dev account): after kick-off.

@@ -27,7 +27,7 @@ Research: `~/Documents/hackathon-research/portaldot-2026-11-06/` (brief, node st
 ## 3. Requirements
 | Weight | Requirement | What satisfies it | Status |
 |---|---|---|---|
-| MANDATORY | Deploy on the Portaldot V3 testnet with verifiable on-chain interactions | Keeper payouts / bonds / keys on testnet, with tx hashes and explorer links | ☐ blocked: testnet offline |
+| MANDATORY | Deploy on the Portaldot V3 testnet with verifiable on-chain interactions | Keeper payouts / bonds / keys on testnet, with tx hashes and explorer links | ☐ V3 testnet live since 16 Oct (`wss://test-node-v3.portaldot.dev`); keeper supports its paged payouts; first signed payout pending funding |
 | MANDATORY | Contract address + tx hash at check-in and final | **Open question:** are native-pallet tx hashes accepted without a contract? | ☐ ask at kick-off |
 | MANDATORY | Public repo, full README, architecture diagram, dev records, ≥3 commits in window | GitHub repo owned by Timidan | ☐ |
 | MANDATORY | Check-in (24 Oct): a demonstrable prototype of at least one core function + public repo, README, dev progress, architecture diagram, live demo or ≤3 min video. **A contract + tx hash alone is not enough.** Simulated data allowed; real testnet interactions encouraged (LevelMax, 8 Oct) | Keeper + network panel | ☐ |
