@@ -1,7 +1,6 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { config, MAINNET } from './config.js';
 import { alert } from './db.js';
-import { blake2AsHex } from '@polkadot/util-crypto';
 
 export type PayoutMode = 'whole-era' | 'explicit-page' | 'next-page' | 'none';
 export type Capabilities = {
@@ -44,6 +43,9 @@ export async function connect(): Promise<ApiPromise> {
   return next;
 }
 
+const fingerprintOf = (client: ApiPromise, version: any, codeHash: any) =>
+  `${client.genesisHash.toHex()}:${version.specName}:${version.specVersion}:${version.transactionVersion}:${codeHash.toHex()}`;
+
 export function detect(
   client: ApiPromise,
   at: any,
@@ -66,7 +68,7 @@ export function detect(
       : payout
         ? 'whole-era'
         : 'none';
-  const fingerprint = `${client.genesisHash.toHex()}:${version.specName}:${version.specVersion}:${version.transactionVersion}:${codeHash.toHex()}:${blake2AsHex(metadata.toU8a())}`;
+  const fingerprint = fingerprintOf(client, version, codeHash);
   const cached = capabilityCache.get(fingerprint);
   if (cached) return cached;
   const gaps = [
@@ -94,13 +96,14 @@ export function detect(
 export async function finalized() {
   const client = await connect();
   const hash = await client.rpc.chain.getFinalizedHead();
-  const [at, metadata, version, codeHash] = await Promise.all([
+  const [at, version, codeHash] = await Promise.all([
     client.at(hash),
-    client.rpc.state.getMetadata(hash),
     client.rpc.state.getRuntimeVersion(hash),
     client.rpc.state.getStorageHash('0x3a636f6465', hash),
   ]);
-  const shape = detect(client, at, metadata, version, codeHash);
+  const shape =
+    capabilityCache.get(fingerprintOf(client, version, codeHash)) ??
+    detect(client, at, await client.rpc.state.getMetadata(hash), version, codeHash);
   capabilities = shape;
   return { client, at, hash, shape };
 }
