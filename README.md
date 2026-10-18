@@ -28,7 +28,7 @@ Anyone can trigger a validator's staking payout, but someone has to do it. Uncla
 2. **Collector** (`collector.ts`). On every new session, and every 10 minutes, it lists each claimable era (and page) inside the history window, with an estimate: the fork's stake-weighted formula on runtime 1002 (checked against real payouts), the validator's share of era points on V3. It also samples the node every 15 s (height, peers, sync, finality age) and builds a network snapshot: seats, stake concentration, finality margin from real authority weights.
 3. **Keeper** (`keeper.ts`). For allowlisted validators only, it claims one payout per extrinsic, with one transaction in flight, earliest expiry first. Before signing it re-reads the era bounds, the claim marker and the runtime fingerprint, checks the fee policy, and writes the attempt to SQLite. Only then does it broadcast.
 4. **Receipts.** A payout counts only when a finalized block holds our extrinsic and its reward event. Each one stores `(genesis, blockHash, extrinsicIndex, txHash)`, so anyone can re-check it.
-5. **API and console** (`index.ts`, `web/`). The agent serves the console at `/console` (Overview, Rewards, Node, Network, Keeper) and a landing page at `/`.
+5. **API and console** (`index.ts`, `web/`). The agent serves the console at `/console` (Overview, Rewards, Node, Network, Keeper, Setup) and a landing page at `/`.
 
 | Route | Mode | Purpose |
 |---|---|---|
@@ -37,6 +37,8 @@ Anyone can trigger a validator's staking payout, but someone has to do it. Uncla
 | `GET /api/receipts` | both | Receipt references, re-verified against finalized blocks |
 | `GET /api/nominator/:address` | both | Nominator check: targets, active or not, commission, expiring rewards |
 | `POST /api/keeper/enable`, `/disable`, `/claim-now`; `PUT /api/keeper/policy` | operator only | Keeper control. Needs the bearer token |
+| `GET /api/wizard/preflight?stash=`, `/api/wizard/status?stash=`; `POST /api/wizard/build` | both | Setup wizard: checks before bonding, the unsigned `utility.batchAll(bond, setKeys, validate)` with its decoded preview, fee and a Node Console link, then candidate, queued and active status. Signs nothing |
+| `POST /api/wizard/rotate-keys` | operator only | `author_rotateKeys` on the operator's own node (`PORTALNODE_NODE_RPC`). Needs the bearer token |
 
 ## Architecture
 
@@ -266,7 +268,7 @@ Not used: substrate-payctl and the DAppNode Polkadot package template.
 **Works today:** chain adapter for runtime 1002 and V3; collector; keeper with durable attempts and fee policy; SQLite receipts; API; console; read-only nominator check; Compose with the pinned mainnet node (agent in observer mode); signed payouts on the V3 testnet; per-validator liveness from chain state (blocks authored, heartbeats, era points, will-be-reported-offline forecast) and a session-keys-loaded check against the operator's node; Telegram and Discord alerts (one message when a problem starts, one when it clears, a test button in the console), raised for expiring payouts, keeper pauses and low balance, runtime upgrades, offline risk and keys not loaded. Alert delivery is tested against stubbed endpoints; a real bot and webhook are not wired yet.
 
 **Not built yet:**
-- Setup wizard (bond, session keys, validate) and wallet signing.
+- Wallet signing proven end to end. The Setup wizard builds the call and links it into Portaldot Node Console (`/?rpc=<ws>#/extrinsics/decode/<call>`, then Submission); its call data was signed and finalized on the runtime 1002 dev chain from a script, not yet from the extension. On V3 the call decodes, but setting keys needs an ownership proof from `author_rotateKeysWithOwner`, untested without a V3 node.
 - DAppNode package.
 
 **Next, by 6 Nov:** setup wizard with one proven wallet, the public observer page with verified receipts, update signals. DAppNode only if its networking keeps node RPC private.

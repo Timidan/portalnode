@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import {
   SquaresFour, Coins, HardDrives, Graph, Key, ArrowLeft, CheckCircle, Warning, XCircle, Clock, CopySimple, Check, Info,
+  Wrench, ArrowSquareOut,
 } from '@phosphor-icons/react';
 import {
   type Attempt, type Health, type Load, type Network, type Polled, type NodeSample, type PayoutRow, type Receipt, type Rewards,
-  ago, chainOf, fmtPOT, keeperCall, normalizeNetwork, short, token, usePoll,
+  type Built, type KeyPart, type Preflight, type Rotated, type WizardStatus,
+  ago, chainOf, fmtPOT, getJson, keeperCall, normalizeNetwork, short, token, usePoll,
 } from '../lib/api';
 import { Network as NetworkMark, Token } from '../components/brand';
 import type { Liveness } from '../lib/api';
 import { DiscordLogo, TelegramLogo } from '@phosphor-icons/react';
 import type { Alerts, ChannelResult } from '../lib/api';
 
-type View = 'overview' | 'rewards' | 'node' | 'network' | 'keeper';
+type View = 'overview' | 'rewards' | 'node' | 'network' | 'keeper' | 'setup';
 const VIEWS: [View, string, typeof SquaresFour][] = [
   ['overview', 'Overview', SquaresFour], ['rewards', 'Rewards', Coins], ['node', 'Node', HardDrives],
-  ['network', 'Network', Graph], ['keeper', 'Keeper', Key],
+  ['network', 'Network', Graph], ['keeper', 'Keeper', Key], ['setup', 'Setup', Wrench],
 ];
 
 const utc = (iso: string) => new Date(iso).toUTCString().slice(5, 22);
@@ -426,6 +428,203 @@ function KeeperView({ health, rewards, unit }: { health: Load<Health>; rewards: 
   );
 }
 
+const field = 'w-full rounded-xl bg-paper px-4 font-mono text-[14px] shadow-[inset_0_0_0_1px_var(--color-line)] outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--color-accent)]';
+const Mark = ({ ok }: { ok: boolean | null }) => ok === true ? <CheckCircle size={18} className="shrink-0 text-mint" />
+  : ok === false ? <XCircle size={18} className="shrink-0 text-coral" /> : <Info size={18} className="shrink-0 text-muted" />;
+
+function KeyList({ parts }: { parts: KeyPart[] }) {
+  return (
+    <ul className="mt-5 space-y-1.5 font-mono text-[13px]">
+      {parts.map((k) => (
+        <li key={k.keyTypeId} className="flex flex-wrap gap-x-3"><span className="w-48 text-muted">{k.type} · {k.keyTypeId}</span>{short(k.publicKey, 10)}<Copy text={k.publicKey} /></li>
+      ))}
+    </ul>
+  );
+}
+
+function SetupView({ health }: { health: Load<Health> }) {
+  const observer = health.state === 'ok' && health.data.mode === 'observer';
+  const [stash, setStash] = useState('');
+  const [tok, setTok] = useState(token.get());
+  const [pre, setPre] = useState<Preflight | null>(null);
+  const [keys, setKeys] = useState('');
+  const [proof, setProof] = useState('');
+  const [rotated, setRotated] = useState<KeyPart[] | null>(null);
+  const [bond, setBond] = useState('');
+  const [commission, setCommission] = useState('5');
+  const [built, setBuilt] = useState<Built | null>(null);
+  const [st, setSt] = useState<WizardStatus | null>(null);
+  const [busy, setBusy] = useState('');
+  const [err, setErr] = useState<{ step: string; text: string } | null>(null);
+  const run = async (step: string, fn: () => Promise<void>) => {
+    setBusy(step); setErr(null);
+    try { await fn(); } catch (e) { setErr({ step, text: (e as Error).message }); }
+    setBusy('');
+  };
+  const fail = (step: string) => err?.step === step && (
+    <p className="mt-4 flex gap-2 text-[14px] text-accent" aria-live="polite"><Warning size={18} className="shrink-0" />{err.text}</p>
+  );
+  const btn = 'rounded-full px-5 py-2.5 text-[14px] font-medium disabled:opacity-40';
+  const unit = pre?.network.unit ?? 'POT';
+  const loopback = built && /^wss?:\/\/(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(built.rpc);
+  const preRows: [string, string, string?][] = pre ? [
+    ['Network', pre.network.name, `${pre.network.runtime} · finalized #${pre.network.block.toLocaleString('en-US')}`],
+    ['Your node', !pre.node.attached ? 'Not attached' : pre.node.reachable ? (pre.node.syncing ? 'Syncing' : 'In sync') : 'Not answering',
+      pre.node.attached ? `${pre.node.peers ?? '—'} peers · finalized #${pre.node.finalized?.toLocaleString('en-US') ?? '—'}` : 'keys can only be generated on an attached node'],
+    ['Stash', pre.bonded ? `Bonded, ${fmtPOT(pre.activePOT ?? '0', 4)} ${unit}` : 'Not bonded yet',
+      pre.candidate ? 'already a validator candidate' : pre.bonded ? (pre.controller !== pre.stash ? `controller ${short(pre.controller ?? '')} signs` : 'the batch will skip bond') : undefined],
+    ['Validator bond', pre.bounds.maxPOT ? `${fmtPOT(pre.bounds.minPOT)}–${fmtPOT(pre.bounds.maxPOT)} ${unit}` : `at least ${fmtPOT(pre.bounds.minPOT, 4)} ${unit}`,
+      pre.bounds.problem ?? 'checked again when you build'],
+    ['Seats', `${pre.seats.active} of ${pre.seats.seats} filled`, `${pre.seats.candidates} candidates`],
+    ['Unbonding period', `${pre.bonding.eras} eras`, pre.bonding.days === null ? undefined : `about ${pre.bonding.days} days`],
+    ['Session keys', `${pre.sessionKeys.types.length} keys, ${pre.sessionKeys.bytes} bytes`,
+      `${pre.sessionKeys.types.join(', ')}${pre.sessionKeys.proofRequired ? ' · needs an ownership proof' : ''}`],
+    ['Free balance', `${fmtPOT(pre.freePOT, 4)} ${unit}`],
+    ['Estimated fee', `${pre.feeEstimatePOT} ${unit}`, 'for the whole batch'],
+  ] : [];
+  return (
+    <div className="space-y-4">
+      <Panel title="1. Preflight" aside="read-only checks at the finalized block">
+        <form className="flex flex-wrap gap-2" onSubmit={(e) => {
+          e.preventDefault();
+          run('preflight', async () => {
+            const p = await getJson<Preflight>(`/api/wizard/preflight?stash=${encodeURIComponent(stash.trim())}`);
+            setPre(p); setBuilt(null); setSt(null);
+            if (!p.bonded) setBond(p.bounds.minPOT);
+          });
+        }}>
+          <label className="sr-only" htmlFor="stash">Stash address</label>
+          <input id="stash" value={stash} onChange={(e) => setStash(e.target.value)} placeholder="Stash address (SS58)" autoComplete="off" spellCheck={false}
+            className={`${field} h-11 min-w-0 flex-1`} />
+          <button className={`${btn} bg-ink text-paper`} disabled={busy !== '' || !stash.trim()}>{busy === 'preflight' ? 'Checking…' : 'Check'}</button>
+        </form>
+        {fail('preflight')}
+        {pre && (<>
+          <dl className="mt-6 grid gap-x-8 gap-y-4 text-[14px] sm:grid-cols-2 lg:grid-cols-3">
+            {preRows.map(([k, v, sub]) => (
+              <div key={k}><dt className="text-[13px] text-muted">{k}</dt><dd className="mt-1 text-[16px] tnum">{v}</dd>{sub && <dd className="mt-0.5 text-[13px] text-muted">{sub}</dd>}</div>
+            ))}
+          </dl>
+          {pre.warnings.length > 0 && (
+            <ul className="mt-5 space-y-2 text-[14px]">
+              {pre.warnings.map((w) => <li key={w} className="flex gap-2 text-accent"><Warning size={18} className="shrink-0" />{w}</li>)}
+            </ul>
+          )}
+        </>)}
+      </Panel>
+
+      <Panel title="2. Session keys" aside="made on the node that will run them">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-3">
+            <p className="text-[14px] text-ink/80">Ask your node for new keys. The private keys stay in its keystore; only the public keys come back.</p>
+            <label className="block text-[13px] text-muted" htmlFor="wtok">Console token (kept for this browser tab only)</label>
+            <input id="wtok" type="password" value={tok} onChange={(e) => setTok(e.target.value)} onBlur={() => token.set(tok)} autoComplete="off" className={`${field} h-11`} />
+            <button className={`${btn} bg-ink text-paper`} disabled={busy !== '' || observer || !pre} onClick={() => run('keys', async () => {
+              token.set(tok);
+              const r: Rotated = await keeperCall('/api/wizard/rotate-keys', 'POST', { stash: pre!.stash });
+              setKeys(r.keys); setProof(r.proof === '0x' ? '' : r.proof); setRotated(r.decoded); setBuilt(null);
+            })}>{busy === 'keys' ? 'Generating…' : 'Generate keys on my node'}</button>
+            {observer && <p className="text-[13px] text-muted">This instance is read-only. Key generation only exists on an operator's own box, behind its console token.</p>}
+          </div>
+          <div className="space-y-3">
+            <label className="block text-[13px] text-muted" htmlFor="wkeys">Or paste the keys your node returned (author_rotateKeys)</label>
+            <textarea id="wkeys" rows={4} value={keys} onChange={(e) => { setKeys(e.target.value); setRotated(null); setBuilt(null); }} spellCheck={false}
+              className={`${field} py-3 break-all`} />
+            {pre?.sessionKeys.proofRequired && (<>
+              <label className="block text-[13px] text-muted" htmlFor="wproof">Ownership proof (this runtime checks that the signer holds the keys)</label>
+              <textarea id="wproof" rows={3} value={proof} onChange={(e) => { setProof(e.target.value); setBuilt(null); }} spellCheck={false} className={`${field} py-3 break-all`} />
+            </>)}
+          </div>
+        </div>
+        {fail('keys')}
+        {rotated && <KeyList parts={rotated} />}
+      </Panel>
+
+      <Panel title="3. Bond and commission">
+        <form className="flex flex-wrap items-end gap-4" onSubmit={(e) => {
+          e.preventDefault();
+          run('build', async () => {
+            const b: Built = await keeperCall('/api/wizard/build', 'POST', {
+              stash: pre!.stash, bondPOT: bond, commissionPct: commission, keys: keys.trim(), proof: proof.trim() || undefined,
+            });
+            setBuilt(b); setSt(null);
+          });
+        }}>
+          <label className="text-[13px] text-muted">Bond ({unit})
+            <input inputMode="decimal" value={pre?.bonded ? pre.activePOT ?? '' : bond} disabled={pre?.bonded} onChange={(e) => setBond(e.target.value)}
+              className={`${field} mt-1.5 block h-10 w-44 text-right disabled:opacity-60`} />
+          </label>
+          <label className="text-[13px] text-muted">Commission (%)
+            <input inputMode="decimal" value={commission} onChange={(e) => setCommission(e.target.value)} className={`${field} mt-1.5 block h-10 w-28 text-right`} />
+          </label>
+          <button className={`${btn} bg-ink text-paper`} disabled={busy !== '' || !pre || !keys.trim()}>{busy === 'build' ? 'Building…' : 'Build the call'}</button>
+        </form>
+        <p className="mt-4 text-[13px] text-muted">
+          One utility.batchAll: {pre?.bonded ? '' : 'staking.bond (rewards restaked), '}session.setKeys, staking.validate. If any part fails, none of it applies.
+          {pre?.bonded && ' The stash is already bonded, so the batch keeps its current bond.'}
+        </p>
+        {fail('build')}
+      </Panel>
+
+      <Panel title="4. Sign" aside="in Portaldot Node Console, with your wallet extension">
+        {!built ? <p className="text-[14px] text-muted">Build the call first. PortalNode never sees your stash key: it builds the call, you sign it.</p> : (<>
+          <dl className="grid gap-x-8 gap-y-4 text-[14px] sm:grid-cols-3">
+            <div><dt className="text-[13px] text-muted">Signer</dt><dd className="mt-1 font-mono text-[14px]">{short(built.signer, 8)}<Copy text={built.signer} /></dd><dd className="text-[13px] text-muted">the {built.signerRole}</dd></div>
+            <div><dt className="text-[13px] text-muted">Estimated fee</dt><dd className="mt-1 text-[16px] tnum">{built.feePOT} {built.unit}</dd></div>
+            <div><dt className="text-[13px] text-muted">Keys on your node</dt><dd className="mt-1 flex gap-2 text-[14px]"><Mark ok={built.keysOnNode.loaded} />
+              {built.keysOnNode.loaded === true ? 'Yes' : built.keysOnNode.loaded === false ? 'No' : `Unknown: ${built.keysOnNode.reason}`}</dd></div>
+          </dl>
+          <ol className="mt-5 space-y-3">
+            {built.calls.map((c, i) => (
+              <li key={i} className="rounded-xl bg-ink/[0.04] p-4">
+                <p className="font-mono text-[14px]">{i + 1}. {c.pallet}.{c.method}</p>
+                <pre className="mt-2 font-mono text-[12px] break-all whitespace-pre-wrap text-ink/75">{JSON.stringify(c.args, null, 1)}</pre>
+              </li>
+            ))}
+          </ol>
+          {built.warnings.map((w) => <p key={w} className="mt-4 flex gap-2 text-[14px] text-accent"><Warning size={18} className="shrink-0" />{w}</p>)}
+          <div className="mt-5">
+            {built.keysOnNode.loaded === false ? (
+              <p className="flex gap-2 text-[14px] text-coral"><XCircle size={18} className="shrink-0" />These keys aren't in your node's keystore. If this validator were elected, no running node could produce its blocks, and a small chain can halt. Generate the keys on your node instead.</p>
+            ) : (
+              <a href={built.deepLink} target="_blank" rel="noreferrer" className={`${btn} inline-flex items-center gap-2 bg-ink text-paper`}><ArrowSquareOut size={16} />Sign in Portaldot Node Console</a>
+            )}
+          </div>
+          <p className="mt-4 text-[13px] text-muted">
+            The link opens the console's Decode tab with this call, connected to {built.rpc}. Then open the Submission tab, choose {short(built.signer)}, press Submit Transaction and sign in the Portaldot extension.
+            {loopback && ' This address is local: the console reaches it only if this browser can, and some browsers block a public site from opening a local address. If it can\'t connect, paste the call data into Decode on a console that can reach your node.'}
+          </p>
+          <p className="mt-4 text-[13px] text-muted">Call data<Copy text={built.callHex} /></p>
+          <p className="mt-1 max-h-28 overflow-auto font-mono text-[12px] break-all text-ink/70">{built.callHex}</p>
+        </>)}
+      </Panel>
+
+      <Panel title="5. Verify" aside="keys take effect two sessions after they are set">
+        <button className={`${btn} bg-ink/[0.08]`} disabled={busy !== '' || !pre} onClick={() => run('status', async () => {
+          setSt(await getJson<WizardStatus>(`/api/wizard/status?stash=${encodeURIComponent(pre!.stash)}${keys.trim() ? `&keys=${encodeURIComponent(keys.trim())}` : ''}`));
+        })}>{busy === 'status' ? 'Checking…' : 'Check status'}</button>
+        {fail('status')}
+        {st && (
+          <ul className="mt-5 space-y-2 text-[14px]">
+            {([
+              [st.bonded, st.bonded ? `Bonded: ${fmtPOT(st.activePOT ?? '0', 4)} ${unit}` : 'Not bonded'],
+              [st.candidate, st.candidate ? `Validator candidate, ${st.commissionPct}% commission` : 'Not a validator candidate'],
+              [st.nextKeys ? st.matchesSubmitted !== false : false, !st.nextKeys ? 'No session keys set on chain' : st.matchesSubmitted === false ? 'The session keys on chain differ from the ones above' : 'Session keys set on chain'],
+              [st.keysOnNode.loaded, st.keysOnNode.loaded === true ? 'Your node holds the keys set on chain' : st.keysOnNode.loaded === false ? "Your node doesn't hold the keys set on chain" : `Can't tell whether your node holds the keys: ${st.keysOnNode.reason}`],
+              [st.queued || null, st.queued ? 'Queued: active from the next session' : 'Not queued for the next session'],
+              [st.active || null, st.active ? 'Active validator this session' : 'Not active this session'],
+            ] as [boolean | null, string][]).map(([ok, text]) => <li key={text} className="flex gap-2"><Mark ok={ok} />{text}</li>)}
+          </ul>
+        )}
+        <p className="mt-4 text-[13px] text-muted">
+          {st && `Read at finalized block #${st.block.toLocaleString('en-US')}, session ${st.session}. `}
+          A candidate is elected only if it wins a seat; its keys are queued at the next session and active the one after. PortalNode calls it a validator only once it is active with its keys on a running node.
+        </p>
+      </Panel>
+    </div>
+  );
+}
+
 export default function Console() {
   const [view, setView] = useState<View>(() => (VIEWS.find(([v]) => location.hash === `#${v}`)?.[0] ?? 'overview'));
   const go = (v: View) => { setView(v); history.replaceState(null, '', `#${v}`); };
@@ -463,6 +662,7 @@ export default function Console() {
         {view === 'node' && <NodeView node={node} />}
         {view === 'network' && <NetworkView net={net} live={live} />}
         {view === 'keeper' && <KeeperView health={health} rewards={rewards} unit={chainOf(n?.genesis).unit} />}
+        {view === 'setup' && <SetupView health={health} />}
       </main>
     </div>
   );

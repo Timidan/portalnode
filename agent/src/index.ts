@@ -12,6 +12,7 @@ import { latestSample, sampleNode } from './node-health.js';
 import { channels, recentAlerts, sendTest, watch } from './notify.js';
 import { liveness } from './liveness.js';
 import { decimal, percent } from './rewards.js';
+import { build, Invalid, preflight, rotateKeys, status as wizardStatus } from './wizard.js';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
 const app = express();
@@ -211,6 +212,19 @@ app.get('/api/receipts', async (_req, res) => {
       });
   }
 });
+const wizard = (fn: (req: express.Request) => Promise<unknown>) => async (req: express.Request, res: express.Response) => {
+  try {
+    res.json(await fn(req));
+  } catch (e) {
+    res.status(e instanceof Invalid ? 400 : 503).json({
+      status: e instanceof Invalid ? 'invalid' : 'unavailable',
+      reason: (e instanceof Error ? e.message : String(e)).replace(/[\r\n]+/g, ' ').slice(0, 300),
+    });
+  }
+};
+app.get('/api/wizard/preflight', wizard((req) => preflight(req.query.stash)));
+app.get('/api/wizard/status', wizard((req) => wizardStatus(req.query.stash, req.query.keys)));
+app.post('/api/wizard/build', wizard((req) => build(req.body)));
 let claiming = false;
 async function keep() {
   if (claiming || !getKeeperStatus().enabled) return;
@@ -255,6 +269,7 @@ if (config.mode === 'operator') {
       res.status(400).json({ error: (e as Error).message });
     }
   });
+  app.post('/api/wizard/rotate-keys', auth, wizard((req) => rotateKeys(req.body)));
   app.post('/api/alerts/test', auth, async (_req, res) => {
     if (!Object.values(channels()).some(Boolean)) {
       res.status(400).json({

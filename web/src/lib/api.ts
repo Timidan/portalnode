@@ -103,6 +103,29 @@ export type AlertRow = {
 };
 export type Alerts = { channels: { telegram: boolean; discord: boolean }; payouts: boolean; expiryEras: number; alerts: AlertRow[] };
 
+export type KeyPart = { type: string; keyTypeId: string; publicKey: string };
+export type KeysOnNode = { loaded: boolean | null; reason?: string };
+export type Preflight = {
+  network: { name: string; genesis: string; runtime: string; block: number; unit: string };
+  node: { attached: boolean; reachable?: boolean | null; syncing?: boolean | null; peers?: number | null; finalized?: number | null; reason?: string };
+  stash: string; controller: string | null; bonded: boolean; activePOT: string | null; candidate: boolean; nextKeys: string | null;
+  bounds: { minPOT: string; maxPOT: string | null; existentialDepositPOT: string; problem: string | null };
+  seats: { seats: number; candidates: number; active: number };
+  bonding: { eras: number; days: number | null };
+  sessionKeys: { types: string[]; bytes: number; proofRequired: boolean };
+  freePOT: string; feeEstimatePOT: string; warnings: string[];
+};
+export type Rotated = { keys: string; proof: string; decoded: KeyPart[] };
+export type Built = {
+  callHex: string; signer: string; signerRole: 'stash' | 'controller'; unit: string; rpc: string; deepLink: string; feePOT: string;
+  calls: { pallet: string; method: string; args: Record<string, unknown> }[]; keys: KeyPart[]; keysOnNode: KeysOnNode; warnings: string[];
+};
+export type WizardStatus = {
+  stash: string; block: number; session: number; bonded: boolean; controller: string | null; activePOT: string | null;
+  candidate: boolean; commissionPct: number | null; nextKeys: string | null; matchesSubmitted: boolean | null;
+  keysOnNode: KeysOnNode; queued: boolean; active: boolean; phase: 'none' | 'bonded' | 'candidate' | 'queued' | 'active';
+};
+
 export type Polled<T> = Load<T> & { reload: () => void };
 
 export function usePoll<T>(path: string, every = 30_000, map: (x: T) => T = (x) => x): Polled<T> {

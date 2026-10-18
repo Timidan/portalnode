@@ -34,3 +34,10 @@ export function decimal(n: bigint, denominator = POT, digits = 4): string {
 export function percent(n: bigint, d: bigint): number {
   return Number(decimal(n * 100n, d));
 }
+export function bondProblem(active: bigint, min: bigint, max: bigint | null, unit = 'POT'): string | null {
+  if (active < min)
+    return `${decimal(active)} ${unit} is under the minimum validator bond of ${decimal(min)} ${unit}, short by ${decimal(min - active)} ${unit}`;
+  if (max !== null && active > max)
+    return `${decimal(active)} ${unit} is over the maximum validator bond of ${decimal(max)} ${unit}, by ${decimal(active - max)} ${unit}`;
+  return null;
+}
