@@ -51,6 +51,8 @@ export const config = {
   discordWebhook: discord(process.env.PORTALNODE_DISCORD_WEBHOOK),
   alertPayouts: process.env.PORTALNODE_ALERT_PAYOUTS === 'on',
   alertExpiryEras: Number(process.env.PORTALNODE_ALERT_EXPIRY_ERAS || 7),
+  upstreamCheck: process.env.PORTALNODE_UPSTREAM_CHECK !== 'off',
+  upstreamCommit: process.env.PORTALNODE_UPSTREAM_COMMIT ?? '1ff0b2b3dc85925a91c6f1483567582fca0c79cd',
 };
 if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) throw new Error('Invalid PORT');
 if (!Number.isInteger(config.alertExpiryEras) || config.alertExpiryEras < 1)

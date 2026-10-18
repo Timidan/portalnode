@@ -206,6 +206,7 @@ Then open `/console`, go to **Keeper**, paste the token and press **Turn on**. O
 | `PORTALNODE_NODE_RPC`, `PORTALNODE_METRICS` | none | Local node HTTP RPC and metrics; loopback URLs only |
 | `PORTALNODE_DB` | `./portalnode.sqlite` | SQLite file |
 | `PORTALNODE_KEEPER` | off | `on` turns the keeper on at start (operator mode, fee policy and key required) |
+| `PORTALNODE_UPSTREAM_CHECK` | on | Every 6 h, alert when `portaldotVolunteer/Portaldot-node` has a commit past the pinned one (a new mainnet or V3 binary); `off` disables it |
 | `PORT` | `8080` | Listen port |
 | `PORTALNODE_ALLOWED_HOSTS`, `PORTALNODE_ALLOWED_ORIGINS` | localhost and 127.0.0.1 | Host and Origin allowlists for write routes |
 | `PORTALNODE_TELEGRAM_BOT_TOKEN`, `PORTALNODE_TELEGRAM_CHAT_ID` | none | Telegram alerts: a bot token from @BotFather and the chat id. Set both |
@@ -261,7 +262,6 @@ Not used: substrate-payctl and the DAppNode Polkadot package template.
 **Not built yet:**
 - Setup wizard (bond, session keys, validate) and wallet signing.
 - DAppNode package.
-- Update signals (upstream tarball hash or runtime version changes).
 
 **Next, by 6 Nov:** setup wizard with one proven wallet, the public observer page with verified receipts, update signals. DAppNode only if its networking keeps node RPC private.
 

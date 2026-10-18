@@ -139,8 +139,8 @@ function Overview({ health, net, rewards }: { health: Load<Health>; net: Load<Ne
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi label="Your node"
-          value={!node || !known(node.reachable) ? 'Not connected' : node.syncing ? 'Syncing' : 'In sync'}
-          sub={!node || !known(node.reachable) ? 'set PORTALNODE_NODE_RPC on the agent' : `${node.peers ?? '—'} peers · finalized #${node.finalized_height?.toLocaleString('en-US') ?? '—'}`} />
+          value={!node || !known(node.reachable) ? 'Public RPC only' : node.syncing ? 'Syncing' : 'In sync'}
+          sub={!node || !known(node.reachable) ? 'no local node attached; the keeper still works' : `${node.peers ?? '—'} peers · finalized #${node.finalized_height?.toLocaleString('en-US') ?? '—'}`} />
         <Kpi label="Keeper" value={keeper ? (keeper.enabled ? 'Claiming' : 'Off') : '—'}
           sub={h?.mode === 'observer' ? 'read-only instance' : keeper?.policy ? `max fee ${keeper.policy.maxFeePerTx} ${unit} per claim` : 'set a fee policy to enable'} />
         <Kpi label="Unclaimed for your validators" value={r ? <Token value={fmtPOT(String(openPOT))} genesis={n?.genesis} /> : '—'}

@@ -159,7 +159,25 @@ const units = (s: string) => {
   return BigInt(a) * POT + BigInt((b + '00000000000000').slice(0, 14));
 };
 const startedAt = new Date().toISOString();
-let seenCode: string | undefined, keeperAddress: string | undefined;
+let seenCode: string | undefined, keeperAddress: string | undefined, upstreamCheckedAt = 0;
+
+async function checkUpstream() {
+  if (!config.upstreamCheck || Date.now() - upstreamCheckedAt < 6 * 3600_000) return;
+  upstreamCheckedAt = Date.now();
+  const r = await fetch('https://api.github.com/repos/portaldotVolunteer/Portaldot-node/commits?per_page=1', {
+    headers: { accept: 'application/vnd.github+json', 'user-agent': 'portalnode' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!r.ok) return;
+  const [head] = (await r.json()) as any[];
+  if (head?.sha && head.sha !== config.upstreamCommit)
+    alert(
+      `upstream-node-${head.sha}`,
+      'upstream-node',
+      'info',
+      `Portaldot-node has commit ${head.sha.slice(0, 10)} (${head.commit?.committer?.date ?? 'unknown date'}): "${String(head.commit?.message ?? '').split('\n')[0].slice(0, 80)}"; this install pins ${config.upstreamCommit.slice(0, 10)}`,
+    );
+}
 
 export async function watch() {
   const net = snapshot?.network;
@@ -216,6 +234,7 @@ export async function watch() {
           `validator=${a.validator} era=${a.era}${a.page >= 0 ? ` page=${a.page}` : ''} paid=${a.paid ? decimal(BigInt(a.paid)) : 'unknown'} tx=${a.tx_hash}`,
         );
     await checkReserve();
+    await checkUpstream().catch(() => {});
     const { at, hash } = await finalized();
     const live = await liveness(at, hash.toHex());
     for (const v of live.validators.filter((x) => config.allowlist.includes(x.stash)))
