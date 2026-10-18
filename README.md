@@ -146,7 +146,7 @@ All 48 payouts, signed by the keeper key, each finalized with its `staking.Rewar
 - **Honest network numbers.** The finality margin comes from real authority weights, every number shows its block, and a missing pallet shows as N/A, not zero.
 - **Liveness the way the chain counts it.** A validator is online for a session if it authored a block or sent a heartbeat, exactly as `pallet-im-online` decides. PortalNode warns before the session ends when a validator has neither, while there is still time to fix it, and checks that the session keys on chain are loaded in the operator's own node.
 - **Alerts that only a keeper can raise.** Telegram and Discord, one message when a problem starts and one when it clears: a payout nearing expiry, the keeper paused or low on fees, a runtime upgrade, a validator about to be reported offline, session keys not loaded, and a new commit in the upstream node repository (which publishes no releases or checksums).
-- **Safe across runtime upgrades.** The keeper fingerprints the runtime by its code hash. If the code changes between planning and signing, it stops, alerts, and re-reads the call shapes before it signs again.
+- **Safe across runtime upgrades.** The keeper fingerprints the runtime by its code hash. If the code changes between planning and signing, it turns itself off and alerts. It signs again only after the operator turns it back on, with the call shapes re-read from the new runtime.
 
 ### How it compares
 
