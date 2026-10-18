@@ -294,6 +294,9 @@ export async function collect() {
           ledger = ledgerByStash.get(who);
         accounts.set(who, { bonded: ledger?.active ?? 0n, targets: [...opt.unwrap().targets].map(addr) });
       }
+    for (const stash of candidates)
+      if (!accounts.has(stash))
+        accounts.set(stash, { bonded: ledgerByStash.get(stash)?.active ?? 0n, targets: [], validator: true });
     const exposedNominators = new Set(
       [...currentExposures.values()].flatMap((e) => e.others.map((n) => n.who)),
     );

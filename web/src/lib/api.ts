@@ -27,7 +27,8 @@ export type Network = {
   genesis?: string;
 };
 export type Nominator = {
-  address: string; bondedPOT: string; allTargetsInactive: boolean;
+  address: string; role: 'validator' | 'nominator' | 'none'; bondedPOT: string; allTargetsInactive: boolean;
+  unclaimed: { era: number; page: number; status: string; estimate: string | null }[]; keeperClaims: boolean;
   targets: { stash: string; active: boolean; commissionPct: number }[];
   expiring: { era: number; validator: string; estimatedNominatorPOT: string; projectedExpiryUtc: string }[];
 };

@@ -18,7 +18,7 @@ function Landing() {
         <Suspense fallback={null}><PunchClock /></Suspense>
       </section>
       <ConsolePreview net={net} />
-      <NominatorCheck />
+      <NominatorCheck net={net} />
       <Footer />
     </main>
   );

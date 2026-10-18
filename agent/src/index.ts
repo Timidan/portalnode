@@ -100,9 +100,19 @@ app.get('/api/nominator/:address', (req, res) => {
   }));
   res.set('X-Snapshot-Block', state.network.block.hash);
   res.set('X-Snapshot-At', state.network.computedAt);
+  const unclaimed = account?.validator
+    ? (db
+        .prepare(
+          "SELECT era, page, status, estimate FROM payouts WHERE genesis=? AND validator=? AND status IN ('claimable','expiring','planned') ORDER BY era, page",
+        )
+        .all(state.network.genesis, address) as any[])
+    : [];
   res.json({
     address,
+    role: account?.validator ? 'validator' : account ? 'nominator' : 'none',
     bondedPOT: account ? decimal(account.bonded) : '0',
+    unclaimed,
+    keeperClaims: config.allowlist.includes(address),
     targets,
     allTargetsInactive: targets.length > 0 && targets.every((t: any) => !t.active),
     expiring: rows,

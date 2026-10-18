@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { ArrowRight, MagnifyingGlass, Warning, CheckCircle, XCircle, HardDrives, Cube, Coins } from '@phosphor-icons/react';
 import { RollingNumber } from './rolling-number';
-import { Network as NetworkMark } from './brand';
+import { Network as NetworkMark, Token } from './brand';
 import { type Load, type Network, type Nominator, ago, chainOf, fmtPOT, getJson } from '../lib/api';
 
 const reveal = {
@@ -292,7 +292,8 @@ function NetworkPane({ net }: { net: Network }) {
   );
 }
 
-export function NominatorCheck() {
+export function NominatorCheck({ net }: { net: Load<Network> }) {
+  const genesis = net.state === 'ok' ? net.data.genesis : undefined;
   const [addr, setAddr] = useState('');
   const [res, setRes] = useState<Load<Nominator> | null>(null);
   const check = async (e: React.FormEvent) => {
@@ -321,10 +322,10 @@ export function NominatorCheck() {
             <button type="submit" className="flex h-12 items-center gap-2 rounded-full bg-ink px-5 text-[15px] font-medium text-paper"><MagnifyingGlass size={16} />Check</button>
           </form>
           <div className="mt-6 min-h-[180px]">
-            {!res && <p className="text-[15px] text-muted">Results come straight from Portaldot mainnet.</p>}
+            {!res && <p className="text-[15px] text-muted">Results come straight from {chainOf(genesis).name}, read by this PortalNode.</p>}
             {res?.state === 'loading' && <div className="h-40 animate-pulse rounded-2xl bg-ink/[0.04]" />}
             {res?.state === 'error' && <p className="text-[15px] text-accent">{res.reason === 'HTTP 400' ? "That doesn't look like a Portaldot address." : `Couldn't check that address: ${res.reason}`}</p>}
-            {res?.state === 'ok' && <NominatorResult n={res.data} />}
+            {res?.state === 'ok' && <NominatorResult n={res.data} genesis={genesis} />}
           </div>
         </motion.div>
       </div>
@@ -332,13 +333,29 @@ export function NominatorCheck() {
   );
 }
 
-function NominatorResult({ n }: { n: Nominator }) {
+function NominatorResult({ n, genesis }: { n: Nominator; genesis?: string }) {
   const total = n.expiring.reduce((s, e) => s + Number(e.estimatedNominatorPOT), 0);
+  const { unit } = chainOf(genesis);
+  if (n.role === 'validator') {
+    const open = n.unclaimed.reduce((s, e) => s + Number(e.estimate ?? 0), 0);
+    return (
+      <div className="space-y-3 text-[15px] text-ink/80">
+        <p>This is a validator with <Token value={fmtPOT(n.bondedPOT)} genesis={genesis} /> bonded.</p>
+        {n.unclaimed.length ? (
+          <p className="flex gap-2 rounded-2xl bg-accent/10 p-4 text-ink"><Warning size={18} className="mt-0.5 shrink-0 text-accent" />
+            {n.unclaimed.length} payout{n.unclaimed.length > 1 ? 's' : ''} unclaimed, about {open.toLocaleString('en-US', { maximumFractionDigits: 2 })} {unit} from era {n.unclaimed[0].era} on. {n.keeperClaims ? "This PortalNode's keeper claims them." : 'Anyone can claim them, before 84 eras pass.'}
+          </p>
+        ) : (
+          <p className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-700" />Every payout in the 84-era window is claimed{n.keeperClaims ? ", by this PortalNode's keeper" : ''}.</p>
+        )}
+      </div>
+    );
+  }
   if (!n.targets.length) return <p className="text-[15px] text-ink/80">This address isn't nominating anyone right now.</p>;
   return (
     <div className="space-y-4 text-[15px]">
       {n.allTargetsInactive && (
-        <p className="flex gap-2 rounded-2xl bg-accent/10 p-4 text-ink"><Warning size={18} className="mt-0.5 shrink-0 text-accent" />None of the validators you back is active this era, so your {fmtPOT(n.bondedPOT)} POT earns nothing. Pick an active validator.</p>
+        <p className="flex gap-2 rounded-2xl bg-accent/10 p-4 text-ink"><Warning size={18} className="mt-0.5 shrink-0 text-accent" />None of the validators you back is active this era, so your {fmtPOT(n.bondedPOT)} {unit} earns nothing. Pick an active validator.</p>
       )}
       <ul className="space-y-1.5">
         {n.targets.map((t) => (
@@ -349,7 +366,7 @@ function NominatorResult({ n }: { n: Nominator }) {
         ))}
       </ul>
       {n.expiring.length > 0 && (
-        <p className="flex items-center gap-2 text-ink/80"><ArrowRight size={16} />About {total.toLocaleString('en-US', { maximumFractionDigits: 2 })} POT of your rewards expire in the next 7 days (estimate). Claiming from this page comes later.</p>
+        <p className="flex items-center gap-2 text-ink/80"><ArrowRight size={16} />About {total.toLocaleString('en-US', { maximumFractionDigits: 2 })} {unit} of your rewards expire in the next 7 days (estimate). Claiming from this page comes later.</p>
       )}
     </div>
   );
