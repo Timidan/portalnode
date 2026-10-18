@@ -6,6 +6,10 @@ import {
   type Attempt, type Health, type Load, type Network, type Polled, type NodeSample, type PayoutRow, type Receipt, type Rewards,
   ago, chainOf, fmtPOT, keeperCall, normalizeNetwork, short, token, usePoll,
 } from '../lib/api';
+import { Network as NetworkMark, Token } from '../components/brand';
+import type { Liveness } from '../lib/api';
+import { DiscordLogo, TelegramLogo } from '@phosphor-icons/react';
+import type { Alerts, ChannelResult } from '../lib/api';
 
 type View = 'overview' | 'rewards' | 'node' | 'network' | 'keeper';
 const VIEWS: [View, string, typeof SquaresFour][] = [
@@ -28,7 +32,7 @@ function Panel({ title, aside, children }: { title: string; aside?: React.ReactN
   );
 }
 
-function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: 'warn' | 'ok' }) {
+function Kpi({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: string; tone?: 'warn' | 'ok' }) {
   return (
     <div className="rounded-2xl border border-line bg-card/60 p-5">
       <p className="text-[13px] text-muted">{label}</p>
@@ -139,7 +143,7 @@ function Overview({ health, net, rewards }: { health: Load<Health>; net: Load<Ne
           sub={!node || !known(node.reachable) ? 'set PORTALNODE_NODE_RPC on the agent' : `${node.peers ?? '—'} peers · finalized #${node.finalized_height?.toLocaleString('en-US') ?? '—'}`} />
         <Kpi label="Keeper" value={keeper ? (keeper.enabled ? 'Claiming' : 'Off') : '—'}
           sub={h?.mode === 'observer' ? 'read-only instance' : keeper?.policy ? `max fee ${keeper.policy.maxFeePerTx} ${unit} per claim` : 'set a fee policy to enable'} />
-        <Kpi label="Unclaimed for your validators" value={r ? `${fmtPOT(String(openPOT))} ${unit}` : '—'}
+        <Kpi label="Unclaimed for your validators" value={r ? <Token value={fmtPOT(String(openPOT))} genesis={n?.genesis} /> : '—'}
           sub={r ? `${open.length} eras · estimate` : undefined} />
         <Kpi label="Expiring this week" value={r ? `${expiring.length} eras` : '—'} tone={expiring.length ? 'warn' : undefined}
           sub={expiring[0] && n ? `first: era ${expiring[0].era}, ${eraExpiry(expiring[0].era, n) ? utc(eraExpiry(expiring[0].era, n)!) + ' UTC' : 'soon'}` : undefined} />
@@ -182,7 +186,7 @@ function RewardsView({ rewards, receipts, net }: { rewards: Load<Rewards>; recei
             <Panel title="Eras" aside="amounts are estimates until a receipt exists">
               <div className="max-h-[420px] overflow-auto">
                 <table className="w-full text-left text-[14px]">
-                  <thead className="sticky top-0 bg-card text-[13px] text-muted"><tr><th className="py-2 pr-4 font-normal">Era</th><th className="py-2 pr-4 font-normal">Status</th><th className="py-2 pr-4 font-normal">Projected expiry (UTC)</th><th className="py-2 text-right font-normal">Gross {unit}</th></tr></thead>
+                  <thead className="sticky top-0 bg-card text-[13px] text-muted"><tr><th className="py-2 pr-4 font-normal">Era</th><th className="py-2 pr-4 font-normal">Status</th><th className="py-2 pr-4 font-normal">Projected expiry (UTC)</th><th className="py-2 text-right font-normal"><span className="inline-flex items-center gap-1.5"><img src="/brand/pot.png" alt="" className="h-3.5 w-3.5" />Gross {unit}</span></th></tr></thead>
                   <tbody className="tnum">
                     {[...v.eras].sort((a, b) => a.era - b.era).map((e) => (
                       <tr key={`${e.era}-${e.page}`} className="border-t border-line">
@@ -223,28 +227,47 @@ function NodeView({ node }: { node: Load<NodeSample> }) {
   return (
     <Panel title="Your node" aside="sampled every 15 s from the node's own RPC and metrics">
       <Fallback load={node} what="node health">
-        {(s) => !known(s.reachable) ? (
-          <p className="flex gap-2 text-[14px] text-ink/75"><Info size={18} className="shrink-0 text-muted" />This agent isn't connected to a local node. With the Compose install it reads the node over 127.0.0.1; on its own, set PORTALNODE_NODE_RPC and PORTALNODE_METRICS.</p>
-        ) : (
-          <dl className="grid gap-x-8 gap-y-4 text-[14px] sm:grid-cols-2 lg:grid-cols-4">
-            {([
-              ['Reachable', s.reachable ? 'Yes' : 'No'], ['Syncing', s.syncing ? 'Yes' : 'No'], ['Peers', s.peers ?? 'N/A'],
-              ['Best block', s.best_height?.toLocaleString('en-US') ?? 'N/A'], ['Finalized block', s.finalized_height?.toLocaleString('en-US') ?? 'N/A'],
-              ['Finality age', known(s.finality_age) ? `${Math.round(Number(s.finality_age) / 1000)} s` : 'N/A'],
-              ['Heartbeat this session', known(s.heartbeat_seen) ? (s.heartbeat_seen ? 'Seen' : 'Not yet') : 'N/A'],
-              ['Blocks authored this session', s.authored_count ?? 'N/A'],
-            ] as [string, string | number][]).map(([k, v]) => (
-              <div key={k}><dt className="text-[13px] text-muted">{k}</dt><dd className="mt-1 text-[18px] tnum">{v}</dd></div>
-            ))}
-          </dl>
-        )}
+        {(s) => (<>
+          {!known(s.reachable) ? (
+            <p className="flex gap-2 text-[14px] text-ink/75"><Info size={18} className="shrink-0 text-muted" />This agent isn't connected to a local node. With the Compose install it reads the node over 127.0.0.1; on its own, set PORTALNODE_NODE_RPC and PORTALNODE_METRICS.</p>
+          ) : (
+            <dl className="grid gap-x-8 gap-y-4 text-[14px] sm:grid-cols-2 lg:grid-cols-4">
+              {([
+                ['Reachable', s.reachable ? 'Yes' : 'No'], ['Syncing', s.syncing ? 'Yes' : 'No'], ['Peers', s.peers ?? 'N/A'],
+                ['Best block', s.best_height?.toLocaleString('en-US') ?? 'N/A'], ['Finalized block', s.finalized_height?.toLocaleString('en-US') ?? 'N/A'],
+                ['Finality age', known(s.finality_age) ? `${s.finality_age} s` : 'N/A'],
+                ['Online this session', known(s.authored_count) ? (s.heartbeat_seen || Number(s.authored_count) > 0 ? 'Yes' : 'Not yet') : 'N/A'],
+                ['Blocks authored this session', s.authored_count ?? 'N/A'],
+              ] as [string, string | number][]).map(([k, v]) => (
+                <div key={k}><dt className="text-[13px] text-muted">{k}</dt><dd className="mt-1 text-[18px] tnum">{v}</dd></div>
+              ))}
+            </dl>
+          )}
+          {!!s.keysLoaded?.length && (
+            <div className="mt-6">
+              <p className="text-[13px] text-muted">Session keys on this node, per allowlisted validator</p>
+              <ul className="mt-2 space-y-2 text-[14px]">
+                {s.keysLoaded.map((k) => (
+                  <li key={k.stash} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-mono text-[13px]">{short(k.stash, 8)}<Copy text={k.stash} /></span>
+                    {k.loaded === true ? <span className="flex items-center gap-1.5"><CheckCircle size={16} className="text-mint" />Loaded</span>
+                      : k.loaded === false ? <span className="flex items-center gap-1.5 text-coral"><XCircle size={16} />Not loaded: this node doesn't hold the keys set on chain</span>
+                        : <span className="flex items-center gap-1.5 text-muted"><Info size={16} />Unknown: {k.reason}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>)}
       </Fallback>
       <p className="mt-5 text-[13px] text-muted">An online validator sends a heartbeat or authors a block each session; "not yet" early in a session isn't an outage. The agent runs on the same box, so it can't report the box itself going down.</p>
     </Panel>
   );
 }
 
-function NetworkView({ net }: { net: Load<Network> }) {
+function NetworkView({ net, live }: { net: Load<Network>; live: Load<Liveness> }) {
+  const l = live.state === 'ok' ? live.data : null;
+  const rows = new Map(l?.validators.map((r) => [r.stash, r]));
   return (
     <Fallback load={net} what="the network">
       {(n) => {
@@ -257,22 +280,39 @@ function NetworkView({ net }: { net: Load<Network> }) {
               <Kpi label="Largest stake" value={n.concentration.top1Pct === null ? '—' : `${n.concentration.top1Pct.toFixed(1)}%`} sub="one finality vote, like every validator" tone="warn" />
             </div>
             <Panel title="Active validators" aside={`block #${n.block.height.toLocaleString('en-US')} · ${ago(n.computedAt)}`}>
+              {l?.validators.filter((r) => r.atRisk).map((r) => (
+                <p key={r.stash} className="mb-4 flex gap-2 text-[14px] text-accent"><Warning size={18} className="shrink-0" />
+                  {short(r.stash)} has authored no block and sent no heartbeat in session {l.session}, and the heartbeat point (block #{l.heartbeatAfter.toLocaleString('en-US')}) has passed. Unless it does one of these before the session ends{l.blocksLeftInSession !== null ? `, in about ${l.blocksLeftInSession} blocks` : ''}, it will be reported offline.</p>
+              ))}
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-left text-[14px]">
-                  <thead className="text-[13px] text-muted"><tr><th className="py-2 pr-4 font-normal">Stash</th><th className="py-2 pr-4 font-normal">Stake share</th><th className="py-2 pr-4 text-right font-normal">Fee</th><th className="py-2 pr-4 text-right font-normal">Nominators</th><th className="py-2 font-normal">Identity</th></tr></thead>
+                <table className="w-full min-w-[900px] text-left text-[14px]">
+                  <thead className="text-[13px] text-muted"><tr><th className="py-2 pr-4 font-normal">Stash</th><th className="py-2 pr-4 font-normal">Stake share</th><th className="py-2 pr-4 text-right font-normal">Fee</th><th className="py-2 pr-4 text-right font-normal">Nominators</th><th className="py-2 pr-4 font-normal">Online</th><th className="py-2 pr-4 text-right font-normal">Blocks this session</th><th className="py-2 pr-4 text-right font-normal">Era points</th><th className="py-2 font-normal">Identity</th></tr></thead>
                   <tbody className="tnum">
-                    {n.validators.list.map((v) => (
-                      <tr key={v.stash} className="border-t border-line">
-                        <td className="py-2.5 pr-4 font-mono text-[13px]">{v.short}<Copy text={v.stash} /></td>
-                        <td className="py-2.5 pr-4"><span className="flex items-center gap-3"><span className="h-1.5 w-28 overflow-hidden rounded-full bg-ink/10"><span className="block h-full rounded-full bg-accent" style={{ width: `${Math.max(2, (v.stakeSharePct / max) * 100)}%` }} /></span>{v.stakeSharePct.toFixed(2)}%</span></td>
-                        <td className={`py-2.5 pr-4 text-right ${v.commissionPct >= 100 ? 'text-accent' : ''}`}>{v.commissionPct}%</td>
-                        <td className="py-2.5 pr-4 text-right">{v.nominators}</td>
-                        <td className="py-2.5 text-muted">{v.hasIdentity ? 'Set' : 'None'}</td>
-                      </tr>
-                    ))}
+                    {n.validators.list.map((v) => {
+                      const r = rows.get(v.stash);
+                      return (
+                        <tr key={v.stash} className="border-t border-line">
+                          <td className="py-2.5 pr-4 font-mono text-[13px]">{v.short}<Copy text={v.stash} /></td>
+                          <td className="py-2.5 pr-4"><span className="flex items-center gap-3"><span className="h-1.5 w-28 overflow-hidden rounded-full bg-ink/10"><span className="block h-full rounded-full bg-accent" style={{ width: `${Math.max(2, (v.stakeSharePct / max) * 100)}%` }} /></span>{v.stakeSharePct.toFixed(2)}%</span></td>
+                          <td className={`py-2.5 pr-4 text-right ${v.commissionPct >= 100 ? 'text-accent' : ''}`}>{v.commissionPct}%</td>
+                          <td className="py-2.5 pr-4 text-right">{v.nominators}</td>
+                          <td className="py-2.5 pr-4">{!r || r.isOnline === null ? '—'
+                            : r.isOnline ? <span className="flex items-center gap-1.5"><CheckCircle size={16} className="text-mint" />{r.authoredBlocks ? 'Yes' : 'Yes, heartbeat'}</span>
+                              : r.atRisk ? <span className="flex items-center gap-1.5 text-accent"><Warning size={16} />At risk</span>
+                                : <span className="flex items-center gap-1.5 text-muted"><Clock size={16} />Not yet</span>}</td>
+                          <td className="py-2.5 pr-4 text-right">{r ? r.authoredBlocks.toLocaleString('en-US') : '—'}</td>
+                          <td className="py-2.5 pr-4 text-right">{r?.eraPoints?.toLocaleString('en-US') ?? '—'}</td>
+                          <td className="py-2.5 text-muted">{v.hasIdentity ? 'Set' : 'None'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+              <p className="mt-4 text-[13px] text-muted">
+                {l ? `Online, blocks and era points read at block #${l.block.height.toLocaleString('en-US')}, session ${l.session}${l.blocksLeftInSession !== null ? `, about ${l.blocksLeftInSession} blocks left` : ''}. A validator counts as online for the session once it authors a block or sends a heartbeat.`
+                  : live.state === 'error' ? `Liveness unavailable: ${live.reason}` : 'Reading liveness…'}
+              </p>
             </Panel>
           </div>
         );
@@ -294,6 +334,18 @@ function KeeperView({ health, rewards, unit }: { health: Load<Health>; rewards: 
     setBusy(false);
   };
   const btn = 'rounded-full px-5 py-2.5 text-[14px] font-medium disabled:opacity-40';
+  const alerts = usePoll<Alerts>('/api/alerts', 30_000);
+  const [tested, setTested] = useState<{ ok: boolean; text: string } | null>(null);
+  const channelsOn = alerts.state === 'ok' && (alerts.data.channels.telegram || alerts.data.channels.discord);
+  const sendTest = async () => {
+    token.set(tok); setBusy(true); setTested(null);
+    try {
+      const r: ChannelResult = await keeperCall('/api/alerts/test', 'POST');
+      const all = Object.entries(r);
+      setTested({ ok: all.every(([, v]) => v.ok), text: all.map(([k, v]) => `${k === 'telegram' ? 'Telegram' : 'Discord'}: ${v.ok ? 'sent' : v.error}`).join(' · ') });
+    } catch (e) { setTested({ ok: false, text: (e as Error).message }); }
+    setBusy(false);
+  };
   return (
     <div className="space-y-4">
       {observer && (
@@ -325,6 +377,43 @@ function KeeperView({ health, rewards, unit }: { health: Load<Health>; rewards: 
         </div>
         {msg && <p className={`mt-5 flex gap-2 text-[14px] ${msg.ok ? 'text-ink/85' : 'text-accent'}`} aria-live="polite">{msg.ok ? <CheckCircle size={18} className="shrink-0 text-mint" /> : <Warning size={18} className="shrink-0" />}{msg.text}</p>}
       </Panel>
+      <Panel title="Alerts" aside="one message when a problem starts, one when it clears">
+        <div className="flex flex-wrap items-center gap-2">
+          {([['telegram', 'Telegram', TelegramLogo], ['discord', 'Discord', DiscordLogo]] as const).map(([k, label, Icon]) => {
+            const on = alerts.state === 'ok' && alerts.data.channels[k];
+            return (
+              <span key={k} className={`flex items-center gap-2 rounded-full px-4 py-2 text-[14px] ${on ? 'bg-ink/[0.08] text-ink' : 'text-muted shadow-[inset_0_0_0_1px_var(--color-line)]'}`}>
+                <Icon size={18} weight={on ? 'fill' : 'regular'} />{label}{on ? '' : ': not set'}
+              </span>
+            );
+          })}
+          <button className={`${btn} bg-ink/[0.08] sm:ml-auto`} disabled={busy || observer || !channelsOn} onClick={sendTest}>Send test alert</button>
+        </div>
+        {alerts.state === 'ok' && !channelsOn && <p className="mt-4 text-[13px] text-muted">Set PORTALNODE_TELEGRAM_BOT_TOKEN and PORTALNODE_TELEGRAM_CHAT_ID, or PORTALNODE_DISCORD_WEBHOOK, on the agent and restart it.</p>}
+        {tested && <p className={`mt-4 flex gap-2 text-[14px] ${tested.ok ? 'text-ink/85' : 'text-accent'}`} aria-live="polite">{tested.ok ? <CheckCircle size={18} className="shrink-0 text-mint" /> : <Warning size={18} className="shrink-0" />}{tested.text}</p>}
+        <div className="mt-5">
+          <Fallback load={alerts} what="alerts">
+            {(d) => d.alerts.length === 0 ? <p className="text-[14px] text-muted">No alerts yet.</p> : (
+              <ul className="divide-y divide-line text-[14px]">
+                {d.alerts.slice(0, 15).map((a) => {
+                  const failed = Object.entries(a.delivery?.result ?? {}).filter(([, r]) => !r.ok);
+                  return (
+                    <li key={a.key} className="flex gap-3 py-3">
+                      {a.resolved ? <CheckCircle size={18} className="mt-0.5 shrink-0 text-mint" /> : a.severity === 'info' ? <Info size={18} className="mt-0.5 shrink-0 text-muted" /> : <Warning size={18} className={`mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-coral' : 'text-accent'}`} />}
+                      <div className="min-w-0 flex-1">
+                        <p className={a.resolved ? 'text-ink/60' : 'text-ink/90'}>{a.message}</p>
+                        {a.evidence && <p className="mt-0.5 font-mono text-[12px] break-all text-muted">{a.evidence}</p>}
+                        {failed.length > 0 && <p className="mt-0.5 text-[12px] text-accent">Not delivered: {failed.map(([k, r]) => `${k} ${r.error}`).join(' · ')}</p>}
+                      </div>
+                      <p className="shrink-0 text-right text-[13px] text-muted">{a.resolved ? 'recovered' : a.severity}<br /><span title={a.lastSeen}>{ago(Date.parse(a.lastSeen))}</span></p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Fallback>
+        </div>
+      </Panel>
       <Panel title="What the keeper will and won't do">
         <ul className="space-y-2 text-[14px] text-ink/80">
           <li>Claims only for the validators on its allowlist, one era per transaction, one transaction at a time.</li>
@@ -345,6 +434,7 @@ export default function Console() {
   const rewards = usePoll<Rewards>('/api/rewards', 30_000);
   const receipts = usePoll<Receipt[]>('/api/receipts', 60_000);
   const node = usePoll<NodeSample>('/api/node', 15_000);
+  const live = usePoll<Liveness>('/api/liveness', 30_000);
   const n = net.state === 'ok' ? net.data : null;
 
   return (
@@ -363,14 +453,15 @@ export default function Console() {
       <main className="min-w-0 p-5 md:p-8">
         <header className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
           <h1 className="display text-[clamp(28px,3vw,40px)]">{VIEWS.find(([v]) => v === view)![1]}</h1>
-          <p className="font-mono text-[13px] text-muted">
-            {health.state === 'ok' ? `${health.data.mode} · ` : ''}{n ? `${chainOf(n.genesis).name} #${n.block.height.toLocaleString('en-US')} · runtime ${n.runtime?.split(':')[2] ?? '—'}` : 'reading the chain…'}
+          <p className="flex items-center gap-2 font-mono text-[13px] text-muted">
+            {n && <NetworkMark genesis={n.genesis} />}
+            {health.state === 'ok' ? `${health.data.mode} · ` : ''}{n ? `#${n.block.height.toLocaleString('en-US')} · runtime ${n.runtime?.split(':')[2] ?? '—'}` : 'reading the chain…'}
           </p>
         </header>
         {view === 'overview' && <Overview health={health} net={net} rewards={rewards} />}
         {view === 'rewards' && <RewardsView rewards={rewards} receipts={receipts} net={net} />}
         {view === 'node' && <NodeView node={node} />}
-        {view === 'network' && <NetworkView net={net} />}
+        {view === 'network' && <NetworkView net={net} live={live} />}
         {view === 'keeper' && <KeeperView health={health} rewards={rewards} unit={chainOf(n?.genesis).unit} />}
       </main>
     </div>

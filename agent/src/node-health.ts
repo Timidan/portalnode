@@ -2,8 +2,12 @@ import { ApiPromise, HttpProvider } from '@polkadot/api';
 import { LEGACY_TYPES } from './chain.js';
 import { config } from './config.js';
 import { db } from './db.js';
+import { liveness } from './liveness.js';
 
-let nodeApi: ApiPromise | null = null;
+type KeyCheck = { stash: string; loaded: boolean | null; reason?: string };
+let nodeApi: ApiPromise | null = null,
+  keyChecks: KeyCheck[] | null = null;
+const unknownKeys = (reason: string): KeyCheck[] => config.allowlist.map((stash) => ({ stash, loaded: null, reason }));
 const errText = (e: unknown) =>
   (e instanceof Error ? e.message : String(e)).replace(/[\r\n]+/g, ' ').slice(0, 200);
 async function metrics(url: string) {
@@ -55,46 +59,33 @@ export async function sampleNode() {
       reachable = 1;
       peers = health.peers.toNumber();
       best = sync.currentBlock.toNumber();
-      syncing = sync.currentBlock.toNumber() < sync.highestBlock.toNumber() ? 1 : 0;
+      syncing = sync.currentBlock.toNumber() < sync.highestBlock.unwrapOr(sync.currentBlock).toNumber() ? 1 : 0;
       finalized = header.number.toNumber();
       age = Math.max(
         0,
         Math.floor((Date.now() - Number((await at.query.timestamp.now()).toString())) / 1000),
       );
-      const online = (at.query as any).imOnline;
-      if (online?.receivedHeartbeats) {
-        const rows = await online.receivedHeartbeats.entries();
-        heartbeat = rows.some(([, v]: any) => v.isTrue) ? 1 : 0;
-      }
-      try {
-        const [authorities, validators, authorship] = await Promise.all([
-          at.query.babe.authorities(),
-          at.query.session.validators(),
-          api.rpc.babe.epochAuthorship(),
-        ]);
-        const authors: any = authorship.toJSON(),
-          keys = [...(authorities as any)],
-          stashes = [...(validators as any)];
-        if (keys.length === stashes.length) {
-          let total = 0,
-            matched = false;
-          for (let i = 0; i < keys.length; i++) {
-            const publicKey = (keys[i] as any).toHex().slice(0, 66);
-            if ((await api.rpc.author.hasKey(publicKey, 'babe')).isTrue) {
-              matched = true;
-              const record = authors[stashes[i].toString()];
-              if (record)
-                total +=
-                  (record.primary?.length ?? 0) +
-                  (record.secondaryPlain?.length ?? 0) +
-                  (record.secondaryVrf?.length ?? 0);
-            }
+      keyChecks = await Promise.all(
+        config.allowlist.map(async (stash): Promise<KeyCheck> => {
+          try {
+            const next: any = await (at.query as any).session.nextKeys(stash);
+            if (next.isNone) return { stash, loaded: null, reason: 'No session keys are set on chain for this stash' };
+            return { stash, loaded: (await api.rpc.author.hasSessionKeys(next.unwrap().toHex())).isTrue };
+          } catch (e) {
+            return { stash, loaded: null, reason: errText(e) };
           }
-          if (matched) authored = total;
-        }
-      } catch {}
+        }),
+      );
+      const mine = (await liveness(at, finalizedHash.toHex()).catch(() => null))?.validators.filter((v) =>
+        config.allowlist.includes(v.stash),
+      );
+      if (mine?.length) {
+        heartbeat = mine.some((v) => v.heartbeat) ? 1 : 0;
+        authored = mine.reduce((n, v) => n + v.authoredBlocks, 0);
+      }
     } catch (e) {
       error = errText(e);
+      keyChecks = unknownKeys(error);
       nodeApi?.disconnect().catch(() => {});
       nodeApi = null;
     }
@@ -116,8 +107,8 @@ export async function sampleNode() {
   db.prepare("DELETE FROM node_samples WHERE julianday(sampled_at)<julianday('now','-7 days')").run();
 }
 export function latestSample() {
-  return (
-    db.prepare('SELECT * FROM node_samples ORDER BY sampled_at DESC LIMIT 1').get() ?? {
+  return {
+    ...((db.prepare('SELECT * FROM node_samples ORDER BY sampled_at DESC LIMIT 1').get() as object | undefined) ?? {
       reachable: null,
       syncing: null,
       peers: null,
@@ -126,6 +117,9 @@ export function latestSample() {
       finality_age: null,
       heartbeat_seen: null,
       authored_count: null,
-    }
-  );
+    }),
+    keysLoaded: !config.nodeRpc
+      ? unknownKeys('PORTALNODE_NODE_RPC is not set, so the agent cannot ask the node')
+      : (keyChecks ?? unknownKeys('The node has not been sampled yet')),
+  };
 }

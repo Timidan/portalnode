@@ -47,8 +47,38 @@ export const config = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  telegram: telegram(process.env.PORTALNODE_TELEGRAM_BOT_TOKEN, process.env.PORTALNODE_TELEGRAM_CHAT_ID),
+  discordWebhook: discord(process.env.PORTALNODE_DISCORD_WEBHOOK),
+  alertPayouts: process.env.PORTALNODE_ALERT_PAYOUTS === 'on',
+  alertExpiryEras: Number(process.env.PORTALNODE_ALERT_EXPIRY_ERAS || 7),
 };
 if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) throw new Error('Invalid PORT');
+if (!Number.isInteger(config.alertExpiryEras) || config.alertExpiryEras < 1)
+  throw new Error('PORTALNODE_ALERT_EXPIRY_ERAS must be a whole number of eras');
+function telegram(token: string | undefined, chatId: string | undefined) {
+  if (!token && !chatId) return undefined;
+  if (!token || !chatId)
+    throw new Error('Set both PORTALNODE_TELEGRAM_BOT_TOKEN and PORTALNODE_TELEGRAM_CHAT_ID');
+  if (!/^\d+:[\w-]{30,}$/.test(token)) throw new Error('PORTALNODE_TELEGRAM_BOT_TOKEN is not a bot token');
+  if (!/^(-?\d+|@\w{5,})$/.test(chatId))
+    throw new Error('PORTALNODE_TELEGRAM_CHAT_ID must be a numeric chat id or an @channel name');
+  return { token, chatId };
+}
+function discord(value: string | undefined) {
+  if (!value) return undefined;
+  let url: URL | undefined;
+  try {
+    url = new URL(value);
+  } catch {}
+  if (
+    url?.protocol !== 'https:' ||
+    url.port ||
+    !['discord.com', 'discordapp.com'].includes(url.hostname) ||
+    !/^\/api\/(v\d+\/)?webhooks\/\d+\/[\w-]+$/.test(url.pathname)
+  )
+    throw new Error('PORTALNODE_DISCORD_WEBHOOK must be an https://discord.com/api/webhooks/ URL');
+  return url.href;
+}
 export function loadKeeper(): { suri: string } | null {
   if (!config.keyFile) return null;
   if ((statSync(config.keyFile).mode & 0o077) !== 0)

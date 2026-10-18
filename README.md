@@ -58,7 +58,7 @@ flowchart LR
   P --> R[Public RPC]
 ```
 
-**Operator mode** has the keeper key, the bearer token and the write routes. **Observer mode** is the same agent with no key, no secrets and no write routes registered. Not built yet: the Telegram or Discord alerts, the wallet signing (it belongs to the setup wizard), and a hosted observer. See [Status](#status-and-roadmap). On the V3 testnet the agent connects to the public V3 endpoint, because the node container packages the mainnet binary.
+**Operator mode** has the keeper key, the bearer token and the write routes. **Observer mode** is the same agent with no key, no secrets and no write routes registered. Not built yet: the wallet signing (it belongs to the setup wizard), and a hosted observer. See [Status](#status-and-roadmap). On the V3 testnet the agent connects to the public V3 endpoint, because the node container packages the mainnet binary.
 
 ## V3 testnet deployment and on-chain evidence
 
@@ -208,6 +208,10 @@ Then open `/console`, go to **Keeper**, paste the token and press **Turn on**. O
 | `PORTALNODE_KEEPER` | off | `on` turns the keeper on at start (operator mode, fee policy and key required) |
 | `PORT` | `8080` | Listen port |
 | `PORTALNODE_ALLOWED_HOSTS`, `PORTALNODE_ALLOWED_ORIGINS` | localhost and 127.0.0.1 | Host and Origin allowlists for write routes |
+| `PORTALNODE_TELEGRAM_BOT_TOKEN`, `PORTALNODE_TELEGRAM_CHAT_ID` | none | Telegram alerts: a bot token from @BotFather and the chat id. Set both |
+| `PORTALNODE_DISCORD_WEBHOOK` | none | Discord alerts: an `https://discord.com/api/webhooks/...` URL |
+| `PORTALNODE_ALERT_EXPIRY_ERAS` | `7` | Alert when an allowlisted payout is this many eras from expiry |
+| `PORTALNODE_ALERT_PAYOUTS` | off | `on` also sends a message for each payout the keeper claims |
 | `NODE_NAME` | `portalnode` | Node name (Compose) |
 
 ## Security model
@@ -252,16 +256,14 @@ Not used: substrate-payctl and the DAppNode Polkadot package template.
 
 ## Status and roadmap
 
-**Works today:** chain adapter for runtime 1002 and V3; collector; keeper with durable attempts and fee policy; SQLite receipts; API; console; read-only nominator check; Compose with the pinned mainnet node (agent in observer mode); signed payouts on the V3 testnet.
+**Works today:** chain adapter for runtime 1002 and V3; collector; keeper with durable attempts and fee policy; SQLite receipts; API; console; read-only nominator check; Compose with the pinned mainnet node (agent in observer mode); signed payouts on the V3 testnet; per-validator liveness from chain state (blocks authored, heartbeats, era points, will-be-reported-offline forecast) and a session-keys-loaded check against the operator's node; Telegram and Discord alerts (one message when a problem starts, one when it clears, a test button in the console), raised for expiring payouts, keeper pauses and low balance, runtime upgrades, offline risk and keys not loaded. Alert delivery is tested against stubbed endpoints; a real bot and webhook are not wired yet.
 
 **Not built yet:**
 - Setup wizard (bond, session keys, validate) and wallet signing.
-- Telegram alerts. Alerts are stored in SQLite but not delivered anywhere.
 - DAppNode package.
-- Public hosted demo (observer instance). For now, run it locally with the Quick start.
 - Update signals (upstream tarball hash or runtime version changes).
 
-**Next, by 6 Nov:** setup wizard with one proven wallet, Telegram alerts, the public observer page with verified receipts, update signals. DAppNode only if its networking keeps node RPC private.
+**Next, by 6 Nov:** setup wizard with one proven wallet, the public observer page with verified receipts, update signals. DAppNode only if its networking keeps node RPC private.
 
 ## Licence
 

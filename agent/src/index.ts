@@ -9,6 +9,8 @@ import { config } from './config.js';
 import { db, alert } from './db.js';
 import { disable, enable, getKeeperStatus, runOnce, setPolicy } from './keeper.js';
 import { latestSample, sampleNode } from './node-health.js';
+import { channels, recentAlerts, sendTest, watch } from './notify.js';
+import { liveness } from './liveness.js';
 import { decimal, percent } from './rewards.js';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
@@ -107,6 +109,25 @@ app.get('/api/nominator/:address', (req, res) => {
   });
 });
 app.get('/api/node', (_req, res) => res.json(latestSample()));
+app.get('/api/alerts', (_req, res) =>
+  res.json({
+    channels: channels(),
+    payouts: config.alertPayouts,
+    expiryEras: config.alertExpiryEras,
+    alerts: recentAlerts(),
+  }),
+);
+app.get('/api/liveness', async (_req, res) => {
+  try {
+    const { at, hash } = await finalized();
+    res.json(await liveness(at, hash.toHex()));
+  } catch (e) {
+    res.status(503).json({
+      status: 'unavailable',
+      reason: (e instanceof Error ? e.message : String(e)).replace(/[\r\n]+/g, ' ').slice(0, 240),
+    });
+  }
+});
 function rewards(req: express.Request, res: express.Response, validator?: string) {
   if (validator && !config.allowlist.includes(validator)) {
     res.status(403).json({ status: 'forbidden', reason: 'Validator is not allowlisted' });
@@ -224,6 +245,16 @@ if (config.mode === 'operator') {
       res.status(400).json({ error: (e as Error).message });
     }
   });
+  app.post('/api/alerts/test', auth, async (_req, res) => {
+    if (!Object.values(channels()).some(Boolean)) {
+      res.status(400).json({
+        error:
+          'No alert channel is set. Set PORTALNODE_TELEGRAM_BOT_TOKEN and PORTALNODE_TELEGRAM_CHAT_ID, or PORTALNODE_DISCORD_WEBHOOK.',
+      });
+      return;
+    }
+    res.json(await sendTest());
+  });
 }
 const webDist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');
 if (existsSync(webDist)) {
@@ -255,6 +286,7 @@ async function start() {
   }
   setInterval(refresh, 10 * 60_000).unref();
   setInterval(() => void sampleNode(), 15_000).unref();
+  setInterval(() => void watch(), 60_000).unref();
   app.listen(config.port, '0.0.0.0', () =>
     console.log(`PortalNode ${config.mode} listening on 0.0.0.0:${config.port}`),
   );

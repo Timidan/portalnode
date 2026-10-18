@@ -28,10 +28,17 @@ CREATE TABLE IF NOT EXISTS network_snapshots (
  stake_concentration TEXT, authority_weights TEXT, identity_count INTEGER, offence_count INTEGER, capability_gaps TEXT,
  computed_at TEXT NOT NULL);
 `);
+let hook: ((key: string) => void) | undefined;
+export const onAlert = (fn: (key: string) => void) => void (hook = fn);
 export function alert(key: string, kind: string, severity: string, evidence: string) {
   const now = new Date().toISOString();
   db.prepare(
     `INSERT INTO alerts(dedupe_key,kind,severity,first_seen,last_seen,evidence) VALUES(?,?,?,?,?,?)
-    ON CONFLICT(dedupe_key) DO UPDATE SET last_seen=excluded.last_seen,evidence=excluded.evidence,resolved=0`,
+    ON CONFLICT(dedupe_key) DO UPDATE SET last_seen=excluded.last_seen,evidence=excluded.evidence,resolved=0,
+    first_seen=CASE WHEN alerts.resolved=1 THEN excluded.first_seen ELSE alerts.first_seen END`,
   ).run(key, kind, severity, now, now, evidence.slice(0, 500));
+  hook?.(key);
+}
+export function resolveAlert(key: string) {
+  if (db.prepare('UPDATE alerts SET resolved=1 WHERE dedupe_key=? AND resolved=0').run(key).changes) hook?.(key);
 }

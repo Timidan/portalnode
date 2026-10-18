@@ -1,0 +1,35 @@
+# Public demo on the Portaldot V3 testnet: the agent in operator mode, keeper on,
+# behind the shared edge proxy. Read routes are public; keeper routes need the token.
+name: portalnode-demo
+services:
+  agent:
+    image: portalnode-agent:${PORTALNODE_IMAGE_TAG:?set PORTALNODE_IMAGE_TAG}
+    restart: unless-stopped
+    networks:
+      public_proxy:
+        aliases: [portalnode-agent]
+    env_file: .env
+    environment:
+      PORTALNODE_MODE: operator
+      PORTALNODE_RPC: wss://test-node-v3.portaldot.dev
+      PORTALNODE_GENESIS: "0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd"
+      PORTALNODE_KEEPER_FILE: /run/secrets/keeper.json
+      PORTALNODE_ALLOWLIST: 5F4ZyJJ8R3QHZKRLAfDXdUuVE4w3Q7uq7tCNfAtvf2XEBfYY,5Grj5uKAoduL2EDfgizp2MMbURJKa4rL6Q5pGUnVhhhjhwjk
+      PORTALNODE_MAX_FEE: "1"
+      PORTALNODE_BUDGET_24H: "5"
+      PORTALNODE_MIN_RESERVE: "1"
+      PORTALNODE_KEEPER: "on"
+      PORTALNODE_DB: /state/portalnode.db
+      PORTALNODE_ALLOWED_HOSTS: portalnode.timidan.xyz
+      PORTALNODE_ALLOWED_ORIGINS: https://portalnode.timidan.xyz
+    volumes:
+      - ./secrets:/run/secrets:ro
+      - ./state:/state
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 512m
+networks:
+  public_proxy:
+    external: true

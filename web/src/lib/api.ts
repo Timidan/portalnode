@@ -79,6 +79,11 @@ export type NodeSample = {
   reachable: number | boolean | null; syncing: number | boolean | null; peers: number | null;
   best_height: number | null; finalized_height: number | null; finality_age: number | null;
   heartbeat_seen: number | boolean | null; authored_count: number | null; sampled_at?: string;
+  keysLoaded?: { stash: string; loaded: boolean | null; reason?: string }[];
+};
+export type Liveness = {
+  block: { height: number; hash: string }; session: number; heartbeatAfter: number; blocksLeftInSession: number | null;
+  validators: { stash: string; authoredBlocks: number; heartbeat: boolean | null; isOnline: boolean | null; eraPoints: number | null; atRisk: boolean }[];
 };
 export type Health = { rpc: string; mode: 'observer' | 'operator'; lastSnapshotAt: string | null; reason: string | null; node: NodeSample };
 export type PayoutRow = { genesis: string; validator: string; era: number; page: number; status: string; estimate: string | null; paid: string | null; reason: string | null; updated_at: string };
@@ -89,6 +94,13 @@ export type Attempt = {
 export type KeeperStatus = { enabled: boolean; policy: { maxFeePerTx: string; budget24h: string; minReserve: string } | null; inFlight: boolean; allowlist: string[] };
 export type Rewards = { validators: { validator: string; eras: PayoutRow[]; keeper: KeeperStatus; recentAttempts: Attempt[] }[] };
 export type Receipt = { genesis: string; blockHash: string; extrinsicIndex: number; txHash: string; verified: boolean; rewardEvents?: number; reason?: string };
+export type ChannelResult = Record<string, { ok: boolean; error?: string }>;
+export type AlertRow = {
+  key: string; kind: string; severity: 'critical' | 'warning' | 'info'; message: string; evidence: string;
+  firstSeen: string; lastSeen: string; resolved: boolean;
+  delivery: { last: 'raised' | 'recovered' | 'failed'; at: string; result: ChannelResult } | null;
+};
+export type Alerts = { channels: { telegram: boolean; discord: boolean }; payouts: boolean; expiryEras: number; alerts: AlertRow[] };
 
 export type Polled<T> = Load<T> & { reload: () => void };
 
