@@ -144,7 +144,13 @@ All 48 payouts, signed by the keeper key, each finalized with its `staking.Rewar
 - **Crash-safe claiming.** A signed attempt is saved before broadcast and settled only from a finalized receipt, so a crash does not lead to a blind resend. Unclear cases pause the keeper and raise an alert.
 - **Portaldot's own reward maths.** The fork splits an era's payout by `points × ED + stake`, not by points as upstream Substrate does. Our formula reproduced 511 mainnet reward events to the base unit.
 - **Honest network numbers.** The finality margin comes from real authority weights, every number shows its block, and a missing pallet shows as N/A, not zero.
-- The other Node Ops entries we found watch the chain. None of them claims payouts.
+- **Liveness the way the chain counts it.** A validator is online for a session if it authored a block or sent a heartbeat, exactly as `pallet-im-online` decides. PortalNode warns before the session ends when a validator has neither, while there is still time to fix it, and checks that the session keys on chain are loaded in the operator's own node.
+- **Alerts that only a keeper can raise.** Telegram and Discord, one message when a problem starts and one when it clears: a payout nearing expiry, the keeper paused or low on fees, a runtime upgrade, a validator about to be reported offline, session keys not loaded, and a new commit in the upstream node repository (which publishes no releases or checksums).
+- **Safe across runtime upgrades.** The keeper fingerprints the runtime by its code hash. If the code changes between planning and signing, it stops, alerts, and re-reads the call shapes before it signs again.
+
+### How it compares
+
+We read the code of the Node Ops entries we could find (18 Oct). Several watch the chain or score validators; one runs local chaos tests. None of them claims payouts or tracks reward expiry, and none computes liveness from `pallet-im-online` state. Where we overlap (node health, alerts, network risk), PortalNode reads everything from finalized chain state, labels estimates, and links every receipt to its block.
 
 ## Ecosystem contribution
 
