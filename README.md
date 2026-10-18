@@ -2,7 +2,7 @@
 
 PortalNode claims Portaldot staking rewards before they expire, for validators and their nominators, and tells operators when their node needs attention.
 
-Portaldot Hacker House 2026 (DoraHacks), track **Node Operations & Tooling**. It runs as two containers on the operator's box: the official Portaldot node (pinned tarball, SHA-256 verified, non-root) and the PortalNode agent (keeper, collector, API and web console).
+Portaldot Hacker House 2026 (DoraHacks), track **Node Operations & Tooling**. **Live demo: https://portalnode.timidan.xyz** (the agent on the V3 testnet, keeper on; the console is public and read-only). It runs as two containers on the operator's box: the official Portaldot node (pinned tarball, SHA-256 verified, non-root) and the PortalNode agent (keeper, collector, API and web console).
 
 | Rubric | Where to look |
 |---|---|

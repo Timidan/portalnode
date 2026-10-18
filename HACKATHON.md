@@ -60,7 +60,7 @@ Open questions for kick-off (14 Oct):
 | Testnet deployment info | addresses, tx hashes, explorer links | ☐ |
 | Demo video | ≤3 min, real product, Portaldot integration visible, public link | ☐ |
 | Pitch deck | PDF or link | ☐ |
-| Runnable demo | hosted URL, or clear local instructions | ☐ |
+| Runnable demo | hosted URL, or clear local instructions | ☑ https://portalnode.timidan.xyz (V3 testnet, keeper live since 18 Oct) + README quick start |
 
 ## 5. Access
 | Item | Needed for | Requested? | Received? | Fallback |
