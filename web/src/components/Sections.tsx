@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { ArrowRight, MagnifyingGlass, Warning, CheckCircle, XCircle, HardDrives, Cube, Coins } from '@phosphor-icons/react';
 import { RollingNumber } from './rolling-number';
+import { Network as NetworkMark } from './brand';
 import { type Load, type Network, type Nominator, ago, chainOf, fmtPOT, getJson } from '../lib/api';
 
 const reveal = {
@@ -14,6 +15,7 @@ const reveal = {
 function Source({ net }: { net: Network }) {
   return (
     <p className="text-[13px] text-muted">
+      <NetworkMark genesis={net.genesis} className="mr-1.5" />
       {chainOf(net.genesis).name}, block #{net.block.height.toLocaleString('en-US')} · {ago(net.computedAt)}
     </p>
   );
@@ -31,7 +33,7 @@ function Unavailable({ what, reason }: { what: string; reason: string }) {
 export function LiveNumbers({ net }: { net: Load<Network> }) {
   return (
     <section id="network" className="mx-auto max-w-6xl px-6 pt-28">
-      <motion.p {...reveal} className="text-[15px] font-medium text-accent">Live from {net.state === 'ok' ? chainOf(net.data.genesis).name : 'Portaldot'}</motion.p>
+      <motion.p {...reveal} className="flex items-center gap-2 text-[15px] font-medium text-accent">{net.state === 'ok' && <NetworkMark genesis={net.data.genesis} />}Live from {net.state === 'ok' ? chainOf(net.data.genesis).name : 'Portaldot'}</motion.p>
       <motion.h2 {...reveal} className="mt-3 max-w-[20ch] text-[clamp(28px,4.6vw,60px)] [overflow-wrap:anywhere] display">
         Rewards are expiring while nobody's looking.
       </motion.h2>
@@ -65,7 +67,12 @@ function NumbersGrid({ net }: { net: Network }) {
           >
             <div className={`display whitespace-nowrap ${i < 2 ? 'text-[clamp(44px,5.4vw,76px)]' : 'text-[clamp(36px,3.6vw,52px)]'}`}>
               <RollingNumber value={s.value} />
-              {s.unit && <span className="ml-2 text-[0.4em] tracking-normal text-muted">{s.unit}</span>}
+              {s.unit && (
+                <span className="ml-2 inline-flex items-center gap-[0.25em] text-[0.4em] tracking-normal text-muted">
+                  <img src="/brand/pot.png" alt="" className="h-[0.9em] w-[0.9em]" />
+                  {s.unit}
+                </span>
+              )}
             </div>
             <p className="mt-3 max-w-[30ch] text-[16px] leading-snug text-ink/80">{s.label}</p>
             <p className="mt-2 text-[13px] text-muted">{s.note}</p>

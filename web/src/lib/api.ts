@@ -4,11 +4,12 @@ export type Validator = {
   stash: string; short: string; commissionPct: number; ownPOT: string; totalPOT: string;
   stakeSharePct: number; nominators: number; hasIdentity: boolean; lastClaimMarker: number | null;
 };
-const CHAINS: Record<string, { name: string; unit: string }> = {
-  '0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b8a54': { name: 'Portaldot mainnet', unit: 'POT' },
-  '0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd': { name: 'Portaldot V3 testnet', unit: 'tPOT' },
+const CHAINS: Record<string, { name: string; unit: string; logo: string }> = {
+  '0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b8a54': { name: 'Portaldot mainnet', unit: 'POT', logo: '/brand/portaldot.png' },
+  '0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd': { name: 'Portaldot V3 testnet', unit: 'tPOT', logo: '/brand/portaldot-v3-testnet.png' },
 };
-export const chainOf = (genesis?: string) => CHAINS[genesis?.toLowerCase() ?? ''] ?? { name: 'Portaldot dev chain', unit: 'POT' };
+export const chainOf = (genesis?: string) =>
+  CHAINS[genesis?.toLowerCase() ?? ''] ?? { name: 'Portaldot dev chain', unit: 'POT', logo: '/brand/portaldot.png' };
 
 export type Network = {
   block: { height: number; hash: string; timestampMs: number };

@@ -27,7 +27,7 @@ Research: `~/Documents/hackathon-research/portaldot-2026-11-06/` (brief, node st
 ## 3. Requirements
 | Weight | Requirement | What satisfies it | Status |
 |---|---|---|---|
-| MANDATORY | Deploy on the Portaldot V3 testnet with verifiable on-chain interactions | Keeper payouts / bonds / keys on testnet, with tx hashes and explorer links | ☐ V3 testnet live since 16 Oct (`wss://test-node-v3.portaldot.dev`); keeper supports its paged payouts; first signed payout pending funding |
+| MANDATORY | Deploy on the Portaldot V3 testnet with verifiable on-chain interactions | Keeper payouts / bonds / keys on testnet, with tx hashes and explorer links | ☑ 18 Oct: keeper claimed all 48 unclaimed V3 payouts (82.4409 tPOT to the two validators), receipts in README; rerun no-op |
 | MANDATORY | Contract address + tx hash at check-in and final | **Open question:** are native-pallet tx hashes accepted without a contract? | ☐ ask at kick-off |
 | MANDATORY | Public repo, full README, architecture diagram, dev records, ≥3 commits in window | GitHub repo owned by Timidan | ☐ |
 | MANDATORY | Check-in (24 Oct): a demonstrable prototype of at least one core function + public repo, README, dev progress, architecture diagram, live demo or ≤3 min video. **A contract + tx hash alone is not enough.** Simulated data allowed; real testnet interactions encouraged (LevelMax, 8 Oct) | Keeper + network panel | ☐ |
@@ -83,6 +83,6 @@ Open questions for kick-off (14 Oct):
 |---|---|---|
 | G0 enter/skip | PASS (user's decision, 13 Oct). Concurrency: Stipend due 14 Oct 03:59 UTC, Qloo 30 Oct | — |
 | G1 rubric lock | PARTIAL. Weights and deliverables quoted; deadline not yet confirmed in Discord | §1, §3 |
-| G2 idea lock | UNKNOWN for V3. Legacy-runtime kill experiment PASSED 13 Oct 21:36 UTC (third-party payout + AlreadyClaimed rerun; docs/HARDENING-LOG.md). V3 gate on 14 Oct: one funded V3 payout + no-op rerun, else re-scope that week. Evidence: reward formula validated against 511 mainnet Reward events (codex-numbers-corrected.md) | docs/PLAN.md, docs/HARDENING-LOG.md |
+| G2 idea lock | PASS for V3 (18 Oct: 48 funded payouts + no-op rerun). Earlier: Legacy-runtime kill experiment PASSED 13 Oct 21:36 UTC (third-party payout + AlreadyClaimed rerun; docs/HARDENING-LOG.md). V3 gate on 14 Oct: one funded V3 payout + no-op rerun, else re-scope that week. Evidence: reward formula validated against 511 mainnet Reward events (codex-numbers-corrected.md) | docs/PLAN.md, docs/HARDENING-LOG.md |
 | G3 scope/architecture | ☐ | |
 | G4 ugly submission | ☐ due by check-in, 24 Oct | |

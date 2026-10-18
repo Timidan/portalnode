@@ -4,6 +4,7 @@ import { CopySimple, Check } from '@phosphor-icons/react';
 import { ShaderCanvas } from '../fx/ShaderCanvas';
 import { nightDither } from '../fx/shaders';
 import { type Load, type Network, chainOf, fmtPOT } from '../lib/api';
+import { Network as NetworkMark, Token } from './brand';
 
 const INSTALL = 'docker compose up -d';
 const FOOTAGE = '/footage/fiber-optic-14886-720.mp4';
@@ -38,9 +39,9 @@ function Status({ net }: { net: Load<Network> }) {
     <ul className="mt-6 space-y-1 font-mono text-[13px] text-muted">
       {ok ? (
         <>
-          <li>{chainOf(ok.genesis).name} block {ok.block.height.toLocaleString('en-US')}</li>
+          <li className="flex items-center gap-2"><NetworkMark genesis={ok.genesis} />{chainOf(ok.genesis).name} block {ok.block.height.toLocaleString('en-US')}</li>
           {ok.finality.threshold !== null && <li>finality needs {ok.finality.threshold} of {ok.finality.authorities} validators</li>}
-          <li><span className="text-accent">{fmtPOT(ok.rewards.expiring7dPOT)} {chainOf(ok.genesis).unit}</span> expiring in 7 days (estimate)</li>
+          <li><Token className="text-accent" value={fmtPOT(ok.rewards.expiring7dPOT)} genesis={ok.genesis} /> expiring in 7 days (estimate)</li>
         </>
       ) : <li>{net.state === 'error' ? `mainnet unavailable: ${net.reason}` : 'reading the chain…'}</li>}
     </ul>
