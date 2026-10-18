@@ -180,10 +180,25 @@ app.get('/api/receipts', async (_req, res) => {
       });
   }
 });
+let claiming = false;
+async function keep() {
+  if (claiming || !getKeeperStatus().enabled) return;
+  claiming = true;
+  try {
+    while ((await runOnce()).action === 'submitted');
+  } catch (e) {
+    alert('keeper-error', 'keeper-error', 'warning', String(e));
+  } finally {
+    claiming = false;
+  }
+}
+const refresh = () => void (getKeeperStatus().enabled ? keep() : collect());
+
 if (config.mode === 'operator') {
   app.post('/api/keeper/enable', auth, (_req, res) => {
     try {
       enable();
+      void keep();
       res.json(getKeeperStatus());
     } catch (e) {
       res.status(400).json({ error: (e as Error).message });
@@ -228,13 +243,13 @@ async function start() {
       const now = s ? Number((await s()).toString()) : -1;
       if (now !== session) {
         session = now;
-        void collect();
+        refresh();
       }
     } catch (e) {
       alert('collector-session', 'collector-error', 'warning', String(e));
     }
   });
-  setInterval(() => void collect(), 10 * 60_000).unref();
+  setInterval(refresh, 10 * 60_000).unref();
   setInterval(() => void sampleNode(), 15_000).unref();
   app.listen(config.port, '0.0.0.0', () =>
     console.log(`PortalNode ${config.mode} listening on 0.0.0.0:${config.port}`),
