@@ -4,11 +4,17 @@ export type Validator = {
   stash: string; short: string; commissionPct: number; ownPOT: string; totalPOT: string;
   stakeSharePct: number; nominators: number; hasIdentity: boolean; lastClaimMarker: number | null;
 };
+const CHAINS: Record<string, { name: string; unit: string }> = {
+  '0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b8a54': { name: 'Portaldot mainnet', unit: 'POT' },
+  '0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd': { name: 'Portaldot V3 testnet', unit: 'tPOT' },
+};
+export const chainOf = (genesis?: string) => CHAINS[genesis?.toLowerCase() ?? ''] ?? { name: 'Portaldot dev chain', unit: 'POT' };
+
 export type Network = {
   block: { height: number; hash: string; timestampMs: number };
   computedAt: number;
   validators: { active: number; target: number; waiting: number; list: Validator[] };
-  concentration: { top1Pct: number; top3Pct: number; top5Pct: number };
+  concentration: { top1Pct: number | null; top3Pct: number | null; top5Pct: number | null };
   finality: { authorities: number; threshold: number; canFailBeforeHalt: number; equalWeights: boolean };
   rewards: {
     unclaimedGrossPOT: string; expiring7dPOT: string; estimate: boolean; formula: string;

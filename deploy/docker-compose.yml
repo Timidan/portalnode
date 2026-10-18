@@ -25,7 +25,7 @@ services:
     depends_on: [node]
     env_file: .env
     environment:
-      PORTALNODE_MODE: operator
+      PORTALNODE_MODE: ${PORTALNODE_MODE:-observer}
       PORTALNODE_RPC: ws://127.0.0.1:9944
       PORTALNODE_NODE_RPC: http://127.0.0.1:9933
       PORTALNODE_METRICS: http://127.0.0.1:9615/metrics

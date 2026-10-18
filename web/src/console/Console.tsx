@@ -4,7 +4,7 @@ import {
 } from '@phosphor-icons/react';
 import {
   type Attempt, type Health, type Load, type Network, type Polled, type NodeSample, type PayoutRow, type Receipt, type Rewards,
-  ago, fmtPOT, keeperCall, normalizeNetwork, short, token, usePoll,
+  ago, chainOf, fmtPOT, keeperCall, normalizeNetwork, short, token, usePoll,
 } from '../lib/api';
 
 type View = 'overview' | 'rewards' | 'node' | 'network' | 'keeper';
@@ -124,6 +124,7 @@ function Overview({ health, net, rewards }: { health: Load<Health>; net: Load<Ne
   const h = health.state === 'ok' ? health.data : null;
   const n = net.state === 'ok' ? net.data : null;
   const r = rewards.state === 'ok' ? rewards.data : null;
+  const { unit } = chainOf(n?.genesis);
   const eras = r?.validators.flatMap((v) => v.eras) ?? [];
   const open = eras.filter((e) => e.status === 'claimable' || e.status === 'expiring');
   const expiring = eras.filter((e) => e.status === 'expiring').sort((a, b) => a.era - b.era);
@@ -137,8 +138,8 @@ function Overview({ health, net, rewards }: { health: Load<Health>; net: Load<Ne
           value={!node || !known(node.reachable) ? 'Not connected' : node.syncing ? 'Syncing' : 'In sync'}
           sub={!node || !known(node.reachable) ? 'set PORTALNODE_NODE_RPC on the agent' : `${node.peers ?? '—'} peers · finalized #${node.finalized_height?.toLocaleString('en-US') ?? '—'}`} />
         <Kpi label="Keeper" value={keeper ? (keeper.enabled ? 'Claiming' : 'Off') : '—'}
-          sub={h?.mode === 'observer' ? 'read-only instance' : keeper?.policy ? `max fee ${keeper.policy.maxFeePerTx} POT per claim` : 'set a fee policy to enable'} />
-        <Kpi label="Unclaimed for your validators" value={r ? `${fmtPOT(String(openPOT))} POT` : '—'}
+          sub={h?.mode === 'observer' ? 'read-only instance' : keeper?.policy ? `max fee ${keeper.policy.maxFeePerTx} ${unit} per claim` : 'set a fee policy to enable'} />
+        <Kpi label="Unclaimed for your validators" value={r ? `${fmtPOT(String(openPOT))} ${unit}` : '—'}
           sub={r ? `${open.length} eras · estimate` : undefined} />
         <Kpi label="Expiring this week" value={r ? `${expiring.length} eras` : '—'} tone={expiring.length ? 'warn' : undefined}
           sub={expiring[0] && n ? `first: era ${expiring[0].era}, ${eraExpiry(expiring[0].era, n) ? utc(eraExpiry(expiring[0].era, n)!) + ' UTC' : 'soon'}` : undefined} />
@@ -162,6 +163,7 @@ function Overview({ health, net, rewards }: { health: Load<Health>; net: Load<Ne
 function RewardsView({ rewards, receipts, net }: { rewards: Load<Rewards>; receipts: Load<Receipt[]>; net: Load<Network> }) {
   const [sel, setSel] = useState(0);
   const n = net.state === 'ok' ? net.data : null;
+  const { unit } = chainOf(n?.genesis);
   return (
     <Fallback load={rewards} what="rewards">
       {(d) => {
@@ -180,7 +182,7 @@ function RewardsView({ rewards, receipts, net }: { rewards: Load<Rewards>; recei
             <Panel title="Eras" aside="amounts are estimates until a receipt exists">
               <div className="max-h-[420px] overflow-auto">
                 <table className="w-full text-left text-[14px]">
-                  <thead className="sticky top-0 bg-card text-[13px] text-muted"><tr><th className="py-2 pr-4 font-normal">Era</th><th className="py-2 pr-4 font-normal">Status</th><th className="py-2 pr-4 font-normal">Projected expiry (UTC)</th><th className="py-2 text-right font-normal">Gross POT</th></tr></thead>
+                  <thead className="sticky top-0 bg-card text-[13px] text-muted"><tr><th className="py-2 pr-4 font-normal">Era</th><th className="py-2 pr-4 font-normal">Status</th><th className="py-2 pr-4 font-normal">Projected expiry (UTC)</th><th className="py-2 text-right font-normal">Gross {unit}</th></tr></thead>
                   <tbody className="tnum">
                     {[...v.eras].sort((a, b) => a.era - b.era).map((e) => (
                       <tr key={`${e.era}-${e.page}`} className="border-t border-line">
@@ -252,7 +254,7 @@ function NetworkView({ net }: { net: Load<Network> }) {
             <div className="grid gap-3 sm:grid-cols-3">
               <Kpi label="Validator seats" value={`${n.validators.active} of ${n.validators.target}`} sub={`${n.validators.waiting} waiting`} />
               <Kpi label="Finality margin" value={`${n.finality.canFailBeforeHalt} can fail`} sub={`needs ${n.finality.threshold} of ${n.finality.authorities} votes`} />
-              <Kpi label="Largest stake" value={`${n.concentration.top1Pct.toFixed(1)}%`} sub="one finality vote, like every validator" tone="warn" />
+              <Kpi label="Largest stake" value={n.concentration.top1Pct === null ? '—' : `${n.concentration.top1Pct.toFixed(1)}%`} sub="one finality vote, like every validator" tone="warn" />
             </div>
             <Panel title="Active validators" aside={`block #${n.block.height.toLocaleString('en-US')} · ${ago(n.computedAt)}`}>
               <div className="overflow-x-auto">
@@ -279,7 +281,7 @@ function NetworkView({ net }: { net: Load<Network> }) {
   );
 }
 
-function KeeperView({ health, rewards }: { health: Load<Health>; rewards: Polled<Rewards> }) {
+function KeeperView({ health, rewards, unit }: { health: Load<Health>; rewards: Polled<Rewards>; unit: string }) {
   const [tok, setTok] = useState(token.get());
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -310,7 +312,7 @@ function KeeperView({ health, rewards }: { health: Load<Health>; rewards: Polled
             </div>
           </div>
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); token.set(tok); act(() => keeperCall('/api/keeper/policy', 'PUT', policy), 'Fee policy saved until the agent restarts.'); }}>
-            <p className="text-[13px] text-muted">Fee policy (POT). The keeper signs nothing until all three are set.</p>
+            <p className="text-[13px] text-muted">Fee policy ({unit}). The keeper signs nothing until all three are set.</p>
             {([['maxFeePerTx', 'Max fee per claim'], ['budget24h', 'Budget per 24 hours'], ['minReserve', 'Keep at least this balance']] as const).map(([k, label]) => (
               <label key={k} className="flex items-center justify-between gap-3 text-[14px]">
                 <span className="text-ink/80">{label}</span>
@@ -362,14 +364,14 @@ export default function Console() {
         <header className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
           <h1 className="display text-[clamp(28px,3vw,40px)]">{VIEWS.find(([v]) => v === view)![1]}</h1>
           <p className="font-mono text-[13px] text-muted">
-            {health.state === 'ok' ? `${health.data.mode} · ` : ''}{n ? `Portaldot mainnet #${n.block.height.toLocaleString('en-US')} · runtime ${n.runtime?.split(':')[2] ?? '—'}` : 'reading the chain…'}
+            {health.state === 'ok' ? `${health.data.mode} · ` : ''}{n ? `${chainOf(n.genesis).name} #${n.block.height.toLocaleString('en-US')} · runtime ${n.runtime?.split(':')[2] ?? '—'}` : 'reading the chain…'}
           </p>
         </header>
         {view === 'overview' && <Overview health={health} net={net} rewards={rewards} />}
         {view === 'rewards' && <RewardsView rewards={rewards} receipts={receipts} net={net} />}
         {view === 'node' && <NodeView node={node} />}
         {view === 'network' && <NetworkView net={net} />}
-        {view === 'keeper' && <KeeperView health={health} rewards={rewards} />}
+        {view === 'keeper' && <KeeperView health={health} rewards={rewards} unit={chainOf(n?.genesis).unit} />}
       </main>
     </div>
   );

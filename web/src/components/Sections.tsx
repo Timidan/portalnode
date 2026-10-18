@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { ArrowRight, MagnifyingGlass, Warning, CheckCircle, XCircle, HardDrives, Cube, Coins } from '@phosphor-icons/react';
 import { RollingNumber } from './rolling-number';
-import { type Load, type Network, type Nominator, ago, fmtPOT, getJson } from '../lib/api';
+import { type Load, type Network, type Nominator, ago, chainOf, fmtPOT, getJson } from '../lib/api';
 
 const reveal = {
   initial: { opacity: 0, y: 14 },
@@ -14,7 +14,7 @@ const reveal = {
 function Source({ net }: { net: Network }) {
   return (
     <p className="text-[13px] text-muted">
-      Portaldot mainnet, block #{net.block.height.toLocaleString('en-US')} · {ago(net.computedAt)}
+      {chainOf(net.genesis).name}, block #{net.block.height.toLocaleString('en-US')} · {ago(net.computedAt)}
     </p>
   );
 }
@@ -31,7 +31,7 @@ function Unavailable({ what, reason }: { what: string; reason: string }) {
 export function LiveNumbers({ net }: { net: Load<Network> }) {
   return (
     <section id="network" className="mx-auto max-w-6xl px-6 pt-28">
-      <motion.p {...reveal} className="text-[15px] font-medium text-accent">Live from Portaldot mainnet</motion.p>
+      <motion.p {...reveal} className="text-[15px] font-medium text-accent">Live from {net.state === 'ok' ? chainOf(net.data.genesis).name : 'Portaldot'}</motion.p>
       <motion.h2 {...reveal} className="mt-3 max-w-[20ch] text-[clamp(28px,4.6vw,60px)] [overflow-wrap:anywhere] display">
         Rewards are expiring while nobody's looking.
       </motion.h2>
@@ -45,11 +45,12 @@ export function LiveNumbers({ net }: { net: Load<Network> }) {
 }
 
 function NumbersGrid({ net }: { net: Network }) {
+  const { unit } = chainOf(net.genesis);
   const stats = [
-    { value: fmtPOT(net.rewards.expiring7dPOT), unit: 'POT', label: 'of staking rewards expire this week unless someone claims them', note: 'Estimate, Portaldot\'s stake-weighted payout formula' },
-    { value: fmtPOT(net.rewards.unclaimedGrossPOT), unit: 'POT', label: 'sits unclaimed inside the 84-era window', note: 'Estimate, gross validator + nominator pools' },
-    { value: fmtPOT(net.idleNominations.bondedPOT), unit: 'POT', label: `is nominating a validator that isn't active (${net.idleNominations.accounts} accounts)`, note: 'Earns nothing this era' },
-    { value: `${net.concentration.top1Pct.toFixed(1)}%`, unit: '', label: 'of active stake sits with one validator', note: `Finality needs ${net.finality.threshold} of ${net.finality.authorities} validators` },
+    { value: fmtPOT(net.rewards.expiring7dPOT), unit, label: 'of staking rewards expire this week unless someone claims them', note: `Estimate, ${net.rewards.formula ?? 'no verified formula'}` },
+    { value: fmtPOT(net.rewards.unclaimedGrossPOT), unit, label: 'sits unclaimed inside the 84-era window', note: 'Estimate, gross validator + nominator pools' },
+    { value: fmtPOT(net.idleNominations.bondedPOT), unit, label: `is nominating a validator that isn't active (${net.idleNominations.accounts} accounts)`, note: 'Earns nothing this era' },
+    { value: net.concentration.top1Pct === null ? '—' : `${net.concentration.top1Pct.toFixed(1)}%`, unit: '', label: 'of active stake sits with one validator', note: net.finality.threshold === null ? '' : `Finality needs ${net.finality.threshold} of ${net.finality.authorities} validators` },
     { value: `${net.validators.active}/${net.validators.target}`, unit: '', label: 'validator seats filled', note: `${net.validators.waiting} waiting to join` },
   ];
   return (

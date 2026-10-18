@@ -244,13 +244,32 @@ export async function collect() {
         .filter(([k]) => num(k.args[0]) === era)
         .map(([k, v]) => [addr(k.args[1]), clipped(v)]),
     );
+    if (paged && era !== null) {
+      const [overviews, pages] = await Promise.all([
+        q.staking.erasStakersOverview.entries(era),
+        q.staking.erasStakersPaged.entries(era),
+      ]);
+      for (const [k, v] of entries(overviews))
+        if (v.isSome)
+          currentExposures.set(addr(k.args[1]), {
+            total: bi(v.unwrap().total),
+            own: bi(v.unwrap().own),
+            others: [],
+          });
+      for (const [k, v] of entries(pages))
+        if (v.isSome)
+          currentExposures
+            .get(addr(k.args[1]))
+            ?.others.push(
+              ...[...v.unwrap().others].map((n: any) => ({ who: addr(n.who), value: bi(n.value) })),
+            );
+    }
     const totalStake = sum([...currentExposures.values()].map((e) => e.total));
     const candidateByStash = new Map<string, bigint>(
       entries(validatorsRaw).map(([k, v]) => [addr(k.args[0]), bi(v.commission)]),
     );
     const list = [...active].map((stash) => {
-      const exp = entries(expEntries).find(([k]) => num(k.args[0]) === era && addr(k.args[1]) === stash)?.[1];
-      const v = exp ? clipped(exp) : { total: 0n, own: 0n, others: [] };
+      const v = currentExposures.get(stash) ?? { total: 0n, own: 0n, others: [] };
       return {
         stash,
         short: `${stash.slice(0, 6)}…${stash.slice(-6)}`,
@@ -300,8 +319,13 @@ export async function collect() {
           hash,
         ),
         raw = stored?.toHex() ?? '';
-      if (raw.startsWith('0x01')) {
-        const pairs = at.registry.createType('Vec<(AccountId,u64)>', `0x${raw.slice(4)}`) as any;
+      const fromPallet = (at.query as any).grandpa?.authorities;
+      const pairs: any = fromPallet
+        ? await fromPallet()
+        : raw.startsWith('0x01')
+          ? at.registry.createType('Vec<(AccountId,u64)>', `0x${raw.slice(4)}`)
+          : null;
+      if (pairs?.length) {
         weights = [...pairs].map((pair) => bi(pair[1]));
         const total = sum(weights),
           threshold = (total * 2n) / 3n + 1n;

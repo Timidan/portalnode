@@ -3,7 +3,7 @@ import { motion, useScroll, useMotionValueEvent } from 'motion/react';
 import { CopySimple, Check } from '@phosphor-icons/react';
 import { ShaderCanvas } from '../fx/ShaderCanvas';
 import { nightDither } from '../fx/shaders';
-import { type Load, type Network, fmtPOT } from '../lib/api';
+import { type Load, type Network, chainOf, fmtPOT } from '../lib/api';
 
 const INSTALL = 'docker compose up -d';
 const FOOTAGE = '/footage/fiber-optic-14886-720.mp4';
@@ -38,9 +38,9 @@ function Status({ net }: { net: Load<Network> }) {
     <ul className="mt-6 space-y-1 font-mono text-[13px] text-muted">
       {ok ? (
         <>
-          <li>mainnet block {ok.block.height.toLocaleString('en-US')}</li>
-          <li>finality needs {ok.finality.threshold} of {ok.finality.authorities} validators</li>
-          <li><span className="text-accent">{fmtPOT(ok.rewards.expiring7dPOT)} POT</span> expiring in 7 days (estimate)</li>
+          <li>{chainOf(ok.genesis).name} block {ok.block.height.toLocaleString('en-US')}</li>
+          {ok.finality.threshold !== null && <li>finality needs {ok.finality.threshold} of {ok.finality.authorities} validators</li>}
+          <li><span className="text-accent">{fmtPOT(ok.rewards.expiring7dPOT)} {chainOf(ok.genesis).unit}</span> expiring in 7 days (estimate)</li>
         </>
       ) : <li>{net.state === 'error' ? `mainnet unavailable: ${net.reason}` : 'reading the chain…'}</li>}
     </ul>

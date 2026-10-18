@@ -161,7 +161,7 @@ app.get('/api/receipts', async (_req, res) => {
           e.phase.isApplyExtrinsic &&
           e.phase.asApplyExtrinsic.toNumber() === ref.extrinsicIndex &&
           e.event.section === 'staking' &&
-          e.event.method === 'Reward',
+          (e.event.method === 'Reward' || e.event.method === 'Rewarded'),
       );
       verified.push({
         ...ref,
@@ -249,6 +249,10 @@ async function start() {
       alert('collector-session', 'collector-error', 'warning', String(e));
     }
   });
+  if (process.env.PORTALNODE_KEEPER === 'on') {
+    enable();
+    void keep();
+  }
   setInterval(refresh, 10 * 60_000).unref();
   setInterval(() => void sampleNode(), 15_000).unref();
   app.listen(config.port, '0.0.0.0', () =>
