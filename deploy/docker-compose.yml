@@ -1,10 +1,58 @@
-# PortalNode: a Portaldot node plus the PortalNode agent in one network namespace.
-# Only P2P (30333) is public. The console is published on the host's loopback;
-# reach it remotely with an SSH tunnel: ssh -L 8080:127.0.0.1:8080 your-server
+# PortalNode. Three profiles, one agent image:
+#   setup  - first run: asks a few questions and writes .env, secrets/ and state/ here
+#   addon  - the agent only, next to a node you already run (or a public RPC); console on 127.0.0.1:8080
+#   full   - a pinned Portaldot mainnet node plus the agent in one network namespace
+#
+#   docker compose run --rm setup
+#   docker compose --profile addon up -d --build     (or --profile full)
+#
+# The console listens on the host's loopback only; from a laptop: ssh -L 8080:127.0.0.1:8080 your-server
 name: portalnode
 
+x-agent: &agent
+  build:
+    context: ..
+    dockerfile: deploy/agent.Dockerfile
+  image: portalnode-agent:local
+  env_file:
+    - path: .env
+      required: false
+  user: "${PORTALNODE_UID:-1000}:${PORTALNODE_GID:-1000}"
+  volumes:
+    - ./state:/state
+    - ./secrets:/run/secrets:ro
+  restart: unless-stopped
+  read_only: true
+  tmpfs: ["/tmp"]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+
 services:
+  setup:
+    <<: *agent
+    profiles: [setup]
+    user: root
+    network_mode: host
+    restart: "no"
+    read_only: false
+    cap_drop: []
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/config
+    command: ["node", "dist/setup.js", "/config"]
+
+  agent-addon:
+    <<: *agent
+    profiles: [addon]
+    network_mode: host
+    environment:
+      PORTALNODE_DB: /state/portalnode.db
+      PORTALNODE_BIND: 127.0.0.1
+      PORT: "8080"
+
   node:
+    profiles: [full]
     build: ./node
     command: ["--name", "${NODE_NAME:-portalnode}"]
     volumes:
@@ -18,28 +66,16 @@ services:
     cap_drop: ["ALL"]
 
   agent:
-    build:
-      context: ..
-      dockerfile: deploy/agent.Dockerfile
+    <<: *agent
+    profiles: [full]
     network_mode: "service:node"
     depends_on: [node]
-    env_file: .env
     environment:
-      PORTALNODE_MODE: ${PORTALNODE_MODE:-observer}
       PORTALNODE_RPC: ws://127.0.0.1:9944
       PORTALNODE_NODE_RPC: http://127.0.0.1:9933
       PORTALNODE_METRICS: http://127.0.0.1:9615/metrics
       PORTALNODE_DB: /state/portalnode.db
       PORT: "8080"
-    volumes:
-      - agent-data:/state
-      - ./secrets:/run/secrets:ro
-    restart: unless-stopped
-    read_only: true
-    tmpfs: ["/tmp"]
-    security_opt: ["no-new-privileges:true"]
-    cap_drop: ["ALL"]
 
 volumes:
   node-data: {}
-  agent-data: {}

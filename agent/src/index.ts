@@ -315,8 +315,8 @@ async function start() {
   setInterval(refresh, 10 * 60_000).unref();
   setInterval(() => void sampleNode(), 15_000).unref();
   setInterval(() => void watch(), 60_000).unref();
-  app.listen(config.port, '0.0.0.0', () =>
-    console.log(`PortalNode ${config.mode} listening on 0.0.0.0:${config.port}`),
+  app.listen(config.port, config.bind, () =>
+    console.log(`PortalNode ${config.mode} listening on ${config.bind}:${config.port}`),
   );
 }
 void start().catch((e) => {

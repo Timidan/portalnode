@@ -29,6 +29,7 @@ const allowlist = (process.env.PORTALNODE_ALLOWLIST ?? '')
 export const config = {
   mode,
   port,
+  bind: process.env.PORTALNODE_BIND ?? '0.0.0.0',
   rpc: process.env.PORTALNODE_RPC ?? 'ws://127.0.0.1:9944',
   nodeRpc: localHttp('PORTALNODE_NODE_RPC', process.env.PORTALNODE_NODE_RPC),
   metrics: localHttp('PORTALNODE_METRICS', process.env.PORTALNODE_METRICS),
