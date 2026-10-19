@@ -12,6 +12,7 @@ import { decimal, POT } from './rewards.js';
 type Result = Record<string, { ok: boolean; error?: string }>;
 const COOLDOWN = 30 * 60_000;
 const REPEAT = new Set(['keeper-error', 'collector-error']);
+const GRACE = 10 * 60_000;
 const KEEPER_STOPS = new Set(['low-reserve', 'keeper-ambiguity', 'runtime-change']);
 const CHAINS: Record<string, string> = {
   [MAINNET]: 'Portaldot mainnet',
@@ -113,9 +114,11 @@ async function deliver(key: string) {
   if (!row) return;
   const was = row.delivery_state ? JSON.parse(row.delivery_state) : null;
   const cool = !was || Date.now() - Date.parse(was.at) >= COOLDOWN;
+  const settled = !REPEAT.has(row.kind) || Date.now() - Date.parse(row.first_seen) >= GRACE;
   const raise =
     !row.resolved &&
     cool &&
+    settled &&
     (was?.last !== 'raised' || (REPEAT.has(row.kind) && was.evidence !== row.evidence));
   const recover = row.resolved && was?.last === 'raised';
   if (!raise && !recover) return;

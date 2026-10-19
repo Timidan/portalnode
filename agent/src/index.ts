@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { connect, finalized, api } from './chain.js';
 import { collect, snapshot, snapshotError, getRewardRows } from './collector.js';
 import { config } from './config.js';
-import { db, alert } from './db.js';
+import { db, alert, resolveAlert } from './db.js';
 import { disable, enable, getKeeperStatus, runOnce, setPolicy } from './keeper.js';
 import { latestSample, sampleNode } from './node-health.js';
 import { channels, recentAlerts, sendTest, watch } from './notify.js';
@@ -231,6 +231,7 @@ async function keep() {
   claiming = true;
   try {
     while ((await runOnce()).action === 'submitted');
+    resolveAlert('keeper-error');
   } catch (e) {
     alert('keeper-error', 'keeper-error', 'warning', String(e));
   } finally {
@@ -256,6 +257,7 @@ if (config.mode === 'operator') {
   app.post('/api/keeper/claim-now', auth, async (_req, res) => {
     try {
       res.json(await runOnce());
+      resolveAlert('keeper-error');
     } catch (e) {
       alert('keeper-error', 'keeper-error', 'warning', String(e));
       res.status(409).json({ error: (e as Error).message });
@@ -301,6 +303,7 @@ async function start() {
         session = now;
         refresh();
       }
+      resolveAlert('collector-session');
     } catch (e) {
       alert('collector-session', 'collector-error', 'warning', String(e));
     }
