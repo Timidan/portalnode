@@ -12,6 +12,7 @@ export const chainOf = (genesis?: string) =>
   CHAINS[genesis?.toLowerCase() ?? ''] ?? { name: 'Portaldot dev chain', unit: 'POT', logo: '/brand/portaldot.png' };
 
 export type Network = {
+  keeper?: { claims: number; paidPOT: string; firstClaimAt: string | null; lastClaimAt: string | null };
   block: { height: number; hash: string; timestampMs: number };
   computedAt: number;
   validators: { active: number; target: number; waiting: number; list: Validator[] };
@@ -71,6 +72,7 @@ export const fmtPOT = (s: string, dp = 0) => {
   return Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: dp }) : s;
 };
 
+export const keptUp = (n: Network) => Number(n.rewards.unclaimedGrossPOT ?? 0) === 0 && (n.keeper?.claims ?? 0) > 0;
 export const ago = (ms: number) => {
   const m = Math.round((Date.now() - ms) / 60000);
   return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;

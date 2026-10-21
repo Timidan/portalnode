@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useScroll, useTransform, type MotionValue } fr
 import { ArrowRight, MagnifyingGlass, Warning, CheckCircle, XCircle, HardDrives, Cube, Coins } from '@phosphor-icons/react';
 import { RollingNumber } from './rolling-number';
 import { Network as NetworkMark, Token } from './brand';
-import { type Load, type Network, type Nominator, ago, chainOf, fmtPOT, getJson } from '../lib/api';
+import { type Load, type Network, type Nominator, ago, chainOf, fmtPOT, getJson, keptUp } from '../lib/api';
 
 const reveal = {
   initial: { opacity: 0, y: 14 },
@@ -35,7 +35,7 @@ export function LiveNumbers({ net }: { net: Load<Network> }) {
     <section id="network" className="mx-auto max-w-6xl px-6 pt-28">
       <motion.p {...reveal} className="flex items-center gap-2 text-[15px] font-medium text-accent">{net.state === 'ok' && <NetworkMark genesis={net.data.genesis} />}Live from {net.state === 'ok' ? chainOf(net.data.genesis).name : 'Portaldot'}</motion.p>
       <motion.h2 {...reveal} className="mt-3 max-w-[20ch] text-[clamp(28px,4.6vw,60px)] [overflow-wrap:anywhere] display">
-        Rewards are expiring while nobody's looking.
+        {net.state === 'ok' && keptUp(net.data) ? 'Nothing has expired while PortalNode is on duty.' : "Rewards are expiring while nobody's looking."}
       </motion.h2>
       <div className="mt-14">
         {net.state === 'loading' && <div className="h-64 animate-pulse rounded-3xl bg-ink/[0.04]" />}
@@ -48,10 +48,20 @@ export function LiveNumbers({ net }: { net: Load<Network> }) {
 
 function NumbersGrid({ net }: { net: Network }) {
   const { unit } = chainOf(net.genesis);
+  const k = net.keeper;
   const stats = [
-    { value: fmtPOT(net.rewards.expiring7dPOT), unit, label: 'of staking rewards expire this week unless someone claims them', note: `Estimate, ${net.rewards.formula ?? 'no verified formula'}` },
-    { value: fmtPOT(net.rewards.unclaimedGrossPOT), unit, label: 'sits unclaimed inside the 84-era window', note: 'Estimate, gross validator + nominator pools' },
-    { value: fmtPOT(net.idleNominations.bondedPOT), unit, label: `is nominating a validator that isn't active (${net.idleNominations.accounts} accounts)`, note: 'Earns nothing this era' },
+    ...(keptUp(net) && k
+      ? [
+          { value: fmtPOT(k.paidPOT), unit, label: "paid out to validators by this PortalNode's keeper", note: `Since ${new Date(k.firstClaimAt!).toUTCString().slice(5, 16)}, from its own fee-only key` },
+          { value: String(k.claims), unit: '', label: 'payouts claimed, each re-checked against its finalized block', note: `Last one ${ago(Date.parse(k.lastClaimAt!))}; nothing is left unclaimed` },
+        ]
+      : [
+          { value: fmtPOT(net.rewards.expiring7dPOT), unit, label: 'of staking rewards expire this week unless someone claims them', note: `Estimate, ${net.rewards.formula ?? 'no verified formula'}` },
+          { value: fmtPOT(net.rewards.unclaimedGrossPOT), unit, label: 'sits unclaimed inside the 84-era window', note: 'Estimate, gross validator + nominator pools' },
+        ]),
+    Number(net.idleNominations.bondedPOT) > 0
+      ? { value: fmtPOT(net.idleNominations.bondedPOT), unit, label: `is nominating a validator that isn't active (${net.idleNominations.accounts} accounts)`, note: 'Earns nothing this era' }
+      : { value: String(net.era?.historyDepth ?? '—'), unit: '', label: 'eras before an unclaimed reward is lost for good', note: net.era ? `Era ${net.era.active} is running now` : '' },
     { value: net.concentration.top1Pct === null ? '—' : `${net.concentration.top1Pct.toFixed(1)}%`, unit: '', label: 'of active stake sits with one validator', note: net.finality.threshold === null ? '' : `Finality needs ${net.finality.threshold} of ${net.finality.authorities} validators` },
     { value: `${net.validators.active}/${net.validators.target}`, unit: '', label: 'validator seats filled', note: `${net.validators.waiting} waiting to join` },
   ];

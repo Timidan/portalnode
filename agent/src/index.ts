@@ -71,7 +71,19 @@ app.get('/api/network', (_req, res) => {
     res.status(503).json({ status: 'unavailable', reason });
     return;
   }
-  res.json(snapshot!.network);
+  const net = snapshot!.network;
+  const done = db
+    .prepare(
+      "SELECT count(*) n, min(charged_at) first, max(charged_at) last FROM tx_attempts WHERE status='settled' AND genesis=?",
+    )
+    .get(net.genesis) as any;
+  const paid = (
+    db.prepare("SELECT paid FROM payouts WHERE status='claimed' AND paid IS NOT NULL AND genesis=?").all(net.genesis) as any[]
+  ).reduce((s, r) => s + BigInt(r.paid), 0n);
+  res.json({
+    ...net,
+    keeper: { claims: done.n, paidPOT: decimal(paid), firstClaimAt: done.first, lastClaimAt: done.last },
+  });
 });
 app.get('/api/nominator/:address', (req, res) => {
   let address: string;
