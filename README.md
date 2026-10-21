@@ -80,6 +80,10 @@ No contract is deployed. PortalNode works with Portaldot's native staking pallet
 
 All 48 payouts, signed by the keeper key, each finalized with its `staking.Rewarded` event matched. Total paid to the validators: **82.4409 tPOT**; total fees: 0.7158 tPOT. An immediate rerun submitted nothing (`noop`).
 
+**Then it kept going on its own.** From 18 Oct the agent has run on a VPS with `PORTALNODE_KEEPER=on` and claimed each new era about a minute after it closed, with no one touching it: by 21 Oct, **72 payouts and 123.86 tPOT** (eras 1 to 36, both validators). The live list, each receipt re-checked against its finalized block, is at [`/api/receipts`](https://portalnode.timidan.xyz/api/receipts).
+
+Open any receipt in Portaldot's own explorer: `https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/<finalized block hash>`. For example, the [first payout](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x8a413a135c18c6ec2349f16a3c24aa635f359db1ce7cf642e66d89f04590f62f) shows `staking.payoutStakersByPage`, `staking.PayoutStarted`, `staking.Rewarded` and `ExtrinsicSuccess` in block 90,847.
+
 <details><summary>Show all 48 receipts</summary>
 
 | Era | Validator | Page | Tx hash | Finalized block hash | Extrinsic | Paid (tPOT) |
@@ -170,19 +174,19 @@ We read the code of the Node Ops entries we could find (18 Oct). Several watch t
 
 Requirements: Docker with Compose for the node, Node.js 22 for running the agent from source.
 
-**A. Mainnet node with an observer console (Docker).** The agent starts in observer mode (read-only); operator mode refuses mainnet this round.
+**A. Docker, guided (new on 21 Oct; being verified end to end).** Only Docker with Compose is needed on the server.
 
 ```bash
-cd deploy
-cp .env.example .env
-docker compose up -d --build
-ssh -L 8080:127.0.0.1:8080 your-server      # from your laptop, if the box is remote
-# open http://127.0.0.1:8080/console
+git clone https://github.com/Timidan/portalnode && cd portalnode/deploy
+docker compose run --rm setup                     # a few questions, see below
+docker compose --profile addon up -d --build      # next to a node you already run, or a public RPC
+# or: docker compose --profile full up -d --build # also runs a pinned Portaldot mainnet node (first sync about a day)
+ssh -L 8080:127.0.0.1:8080 your-server            # from your laptop; then open http://127.0.0.1:8080/console
 ```
 
-The node syncs mainnet from genesis. In our test that ran at about 190 blocks/s, roughly 4 hours.
+`setup` asks which chain to read (your node on this machine, mainnet or V3 public RPC, or any URL) and which validators to watch, and checks them on chain. On a testnet it can run the keeper: it generates a fresh fee-only key and prints the address to fund. It walks you through Telegram (send `/newbot` to @BotFather, paste the token, message your bot, and setup finds the chat) and Discord (paste a webhook URL), then sends a test alert. It writes `.env`, `secrets/keeper.json` (owner-only) and `state/`, and prints the console token. The console listens on 127.0.0.1 only.
 
-**B. Keeper on the V3 testnet (from source).**
+**B. Keeper on the V3 testnet, from source** (how the live demo was first run).
 
 ```bash
 (cd web && npm ci && npm run build)
@@ -216,6 +220,7 @@ Then open `/console`, go to **Keeper**, paste the token and press **Turn on**. O
 | `PORTALNODE_KEEPER` | off | `on` turns the keeper on at start (operator mode, fee policy and key required) |
 | `PORTALNODE_UPSTREAM_CHECK` | on | Every 6 h, alert when `portaldotVolunteer/Portaldot-node` has a commit past the pinned one (a new mainnet or V3 binary); `off` disables it |
 | `PORT` | `8080` | Listen port |
+| `PORTALNODE_BIND` | `0.0.0.0` | Listen address; the add-on profile sets `127.0.0.1` |
 | `PORTALNODE_ALLOWED_HOSTS`, `PORTALNODE_ALLOWED_ORIGINS` | localhost and 127.0.0.1 | Host and Origin allowlists for write routes |
 | `PORTALNODE_TELEGRAM_BOT_TOKEN`, `PORTALNODE_TELEGRAM_CHAT_ID` | none | Telegram alerts: a bot token from @BotFather and the chat id. Set both |
 | `PORTALNODE_DISCORD_WEBHOOK` | none | Discord alerts: an `https://discord.com/api/webhooks/...` URL |

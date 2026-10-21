@@ -47,6 +47,14 @@ Experiments run in scratch, outside this repo, before the coding window. Each li
 - Found on the way and fixed: the service never claimed on its own (nothing called `runOnce`); the block weight limit is an Option of a two-part weight on V3; the keeper paused itself on a metadata-hash difference with identical code hash (fingerprint now spec + tx version + code hash; metadata fetched only for a new fingerprint, since the 1 MB download timed out on this endpoint).
 - The local dev chain cannot restart: its container mounted the node binary from a /tmp scratch folder that the reboot wiped. Chain data is intact in the `portalnode-devchain` volume.
 
+## 18–21 Oct 2026: running unattended, alerts, portability
+- Public demo at https://portalnode.timidan.xyz: the agent on the V3 testnet in operator mode with `PORTALNODE_KEEPER=on`, behind the shared edge proxy; read routes public, keeper routes need the bearer token.
+- It claimed each new era about a minute after it closed (eras 25 to 36, both validators), with no one touching it: 72 payouts and 123.86 tPOT in total by 21 Oct, every receipt re-verified by `/api/receipts`.
+- Copying the SQLite file without its WAL lost the last 7 receipts on the first deploy; copies now use the SQLite backup API.
+- Telegram delivery tested end to end with a real bot (test alert accepted, 19 Oct). Public-RPC drops on V3 produced raise-only errors that would have pinged every half hour; keeper and collector errors now wait ten minutes and clear on the next success.
+- Liveness from `pallet-im-online` state, session-key check against the operator's node, setup wizard (proven on the dev chain with a signed batch; V3 call fee-quoted only), validator account check, upstream-node alert.
+- Guided `setup` and Compose `addon`/`full` profiles written (21 Oct). Not yet run end to end in Docker.
+
 ## Pending
 - Corrected reward numbers with the fork formula, validated against a real mainnet payout: Codex.
 - Prove one wallet signing on runtime 1002 (needs the user's browser and a dev account): after kick-off.
