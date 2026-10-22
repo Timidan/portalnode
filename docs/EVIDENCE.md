@@ -5,7 +5,7 @@ Every payout the keeper claimed in its first run (18 Oct 2026). The live, re-ver
 
 All 48 payouts, signed by the keeper key, each finalized with its `staking.Rewarded` event matched. Total paid to the validators: **82.4409 tPOT**; total fees: 0.7158 tPOT. An immediate rerun submitted nothing (`noop`).
 
-**Then it kept going on its own.** From 18 Oct the agent has run on a VPS with `PORTALNODE_KEEPER=on` and claimed each new era about a minute after it closed, with no one touching it: by 21 Oct, **72 payouts and 123.86 tPOT** (eras 1 to 36, both validators). The live list, each receipt re-checked against its finalized block, is at [`/api/receipts`](https://portalnode.timidan.xyz/api/receipts).
+**Then it kept going on its own.** From 18 Oct the agent has run on a VPS with `PORTALNODE_KEEPER=on` and claimed each new era about a minute after it closed, with no one touching it: by 22 Oct, **80 payouts and 137.70 tPOT** (eras 1 to 40, both validators). The live list, each receipt re-checked against its finalized block, is at [`/api/receipts`](https://portalnode.timidan.xyz/api/receipts).
 
 Open any receipt in Portaldot's own explorer: `https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/<finalized block hash>`. For example, the [first payout](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x8a413a135c18c6ec2349f16a3c24aa635f359db1ce7cf642e66d89f04590f62f) shows `staking.payoutStakersByPage`, `staking.PayoutStarted`, `staking.Rewarded` and `ExtrinsicSuccess` in block 90,847.
 

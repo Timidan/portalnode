@@ -32,7 +32,9 @@ Portaldot pays staking rewards only when someone sends a payout transaction, and
 - **Crash-safe.** Each signed attempt is saved before broadcast and settled only from a finalized receipt.
 - **Liveness as the chain counts it.** Blocks authored or a heartbeat, per `pallet-im-online`. Warns before a validator is reported offline.
 - **Keys check.** Confirms the session keys on chain are loaded in your node.
-- **Alerts that clear.** Telegram and Discord: one message when a problem starts, one when it ends.
+- **Alerts that clear, with the fix.** Telegram and Discord: one message when a problem starts, one when it ends, each with the step that fixes it.
+- **Receipts that outlive the node.** Each payout keeps its block number and decoded events, so it stays provable after public nodes prune old blocks.
+- **Public status API.** `/api/status/<stash>`: how far any validator is paid, open to any wallet or dApp.
 - **Setup wizard.** Bond, keys and validate in one batch, signed in Portaldot's Node Console.
 
 ## Built with
@@ -81,8 +83,8 @@ On the V3 testnet nobody was claiming. On 18 Oct PortalNode claimed all 48 open 
 
 | | |
 |---|---|
-| Payouts claimed | **72** by 21 Oct (eras 1–36, both validators), all re-verified |
-| Paid to validators | **123.86 tPOT** |
+| Payouts claimed | **80** by 22 Oct (eras 1–40, both validators), all re-verified |
+| Paid to validators | **137.70 tPOT** |
 | Keeper account | `5HCFicFwm7GoC8R4swpr2WTFFvkH1WkzJQdVcsq6jMFDQVk3` |
 | First payout | [`0x9825048e…`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x8a413a135c18c6ec2349f16a3c24aa635f359db1ce7cf642e66d89f04590f62f) · block 90,847 |
 | Live receipts | [`/api/receipts`](https://portalnode.timidan.xyz/api/receipts) |

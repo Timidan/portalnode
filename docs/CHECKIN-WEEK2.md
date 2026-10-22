@@ -1,15 +1,17 @@
 # Week 2 check-in (due 24 Oct 2026, 12:00 UTC)
 
-Text for the DoraHacks form. Numbers as of 21 Oct.
+Text for the DoraHacks form. Numbers as of 22 Oct; the live count is at https://portalnode.timidan.xyz/api/receipts.
 
 ## One sentence
 PortalNode claims Portaldot staking rewards before they expire, for validators and their nominators, and tells operators when their node needs attention.
 
 ## Project progress
-- **Keeper on the V3 testnet, live and unattended.** It claims every validator's payout page by page (`staking.payoutStakersByPage`) from its own fee-only key. Nobody was claiming on V3 when we started: we claimed all 48 open payouts on 18 Oct, and since then the agent has claimed each new era about a minute after it closed. Total by 21 Oct: 72 payouts, 123.86 tPOT paid to the validators, every receipt re-checked against its finalized block.
+- **Keeper on the V3 testnet, live and unattended.** It claims every validator's payout page by page (`staking.payoutStakersByPage`) from its own fee-only key. Nobody was claiming on V3 when we started: we claimed all 48 open payouts on 18 Oct, and since then the agent has claimed each new era about a minute after it closed. Total by 22 Oct: 80 payouts, 137.70 tPOT paid to the validators, every receipt re-checked against its finalized block.
 - **Crash-safe.** Each signed attempt is saved before broadcast and settled only from a finalized receipt; tested by crashing between save and broadcast and restarting.
 - **Liveness the way the chain counts it** (`pallet-im-online`: a heartbeat or an authored block), with a warning before a validator is reported offline, and a check that its session keys are loaded on the operator's node.
-- **Alerts on Telegram and Discord**, one message when a problem starts and one when it clears: payouts nearing expiry, keeper paused or low on fees, runtime upgrades, offline risk, keys not loaded, a new upstream node commit. Telegram tested with a real bot.
+- **Alerts on Telegram and Discord**, one message when a problem starts and one when it clears: payouts nearing expiry, keeper paused or low on fees, runtime upgrades, offline risk, keys not loaded, a new upstream node commit. Each alert carries the step that fixes it. Telegram tested with a real bot.
+- **Receipts that outlive the node.** Each payout stores its block number and decoded `Rewarded` events, so it stays provable after public nodes prune old blocks.
+- **Public status API** for wallets and dApps: `GET /api/status/<stash>` returns how far any validator is paid and what is still unpaid, read from on-chain claim flags. Example: https://portalnode.timidan.xyz/api/status/5F4ZyJJ8R3QHZKRLAfDXdUuVE4w3Q7uq7tCNfAtvf2XEBfYY
 - **Setup wizard:** preflight, keys from the operator's node, one `utility.batchAll` of bond, setKeys and validate, signed in Portaldot's Node Console; status read back from chain. Proven on a local runtime-1002 chain.
 - **Console and landing page** with live network data, receipts and the account check; a pinned, SHA-256-verified mainnet node image; our own mainnet node synced from genesis.
 
@@ -20,7 +22,7 @@ PortalNode claims Portaldot staking rewards before they expire, for validators a
 - Keeper signing on mainnet stays off this round; decide with the community whether to enable it.
 
 ## GitHub
-https://github.com/Timidan/portalnode — README (rubric order, architecture diagram, evidence), `docs/ARCHITECTURE.md`, development records in `docs/HARDENING-LOG.md` and the commit history (14 Oct onward).
+https://github.com/Timidan/portalnode — README (architecture diagram, evidence, quickstart, API), `docs/ARCHITECTURE.md`, development records in `docs/HARDENING-LOG.md` and the commit history (14 Oct onward).
 
 ## Testnet evidence (Portaldot V3 testnet, `wss://test-node-v3.portaldot.dev`)
 PortalNode uses native staking calls, so there is no contract address. Evidence is transactions and accounts:
