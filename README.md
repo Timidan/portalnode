@@ -147,6 +147,7 @@ ssh -L 8080:127.0.0.1:8080 your-server           # then open http://127.0.0.1:80
 | `GET /api/rewards` · `/receipts` | both | Eras, attempts, re-verified receipts |
 | `GET /api/liveness` | both | Per-validator blocks, heartbeats, era points, risk |
 | `GET /api/nominator/:address` | both | Role, bond, unclaimed payouts |
+| `GET /api/status/:stash` | both | Public, CORS-open: paid-through era and unpaid pages for any validator |
 | `GET /api/wizard/preflight` · `/status` · `POST /api/wizard/build` | both | Setup wizard |
 | `GET /api/alerts` | both | Channels and recent alerts |
 | `POST /api/keeper/enable` · `/disable` · `/claim-now` · `PUT /api/keeper/policy` | operator | Keeper control, bearer token |

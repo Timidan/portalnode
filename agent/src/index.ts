@@ -85,17 +85,48 @@ app.get('/api/network', (_req, res) => {
     keeper: { claims: done.n, paidPOT: decimal(paid), firstClaimAt: done.first, lastClaimAt: done.last },
   });
 });
-app.get('/api/nominator/:address', (req, res) => {
-  let address: string;
+function ss58(raw: string, res: express.Response) {
   try {
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(req.params.address)) throw new Error();
-    const decoded = decodeAddress(req.params.address);
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(raw)) throw new Error();
+    const decoded = decodeAddress(raw);
     if (decoded.length !== 32) throw new Error();
-    address = encodeAddress(decoded, 42);
+    return encodeAddress(decoded, 42);
   } catch {
     res.status(400).json({ status: 'invalid', reason: 'Invalid SS58 account address' });
+    return null;
+  }
+}
+// Public and read-only, so any wallet or dApp may call it from the browser.
+app.get('/api/status/:stash', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  const stash = ss58(req.params.stash, res);
+  if (!stash) return;
+  const reason = snapshotStatus();
+  if (reason) {
+    res.status(503).json({ status: 'unavailable', reason });
     return;
   }
+  const { network, payouts } = snapshot!,
+    mine = payouts.filter((p) => p.validator === stash),
+    unpaid = mine.filter((p) => !p.claimed),
+    from = network.era.claimableFrom,
+    firstUnpaid = Math.min(network.era.active, ...unpaid.map((p) => p.era));
+  res.set('X-Snapshot-Block', network.block.hash);
+  res.json({
+    stash,
+    genesis: network.genesis,
+    block: network.block.height,
+    activeEra: network.era.active,
+    window: { from, to: network.era.active - 1 },
+    paidThrough: firstUnpaid > from ? firstUnpaid - 1 : null,
+    earnedEras: new Set(mine.map((p) => p.era)).size,
+    unpaid: unpaid.map(({ era, page, estimatedPOT, status }) => ({ era, page, estimatedPOT, expiring: status === 'expiring' })),
+    keeperClaims: config.allowlist.includes(stash),
+  });
+});
+app.get('/api/nominator/:address', (req, res) => {
+  const address = ss58(req.params.address, res);
+  if (!address) return;
   const reason = snapshotStatus();
   if (reason) {
     res.status(503).json({ status: 'unavailable', reason });

@@ -20,6 +20,7 @@ export type Snapshot = {
   accounts: Map<string, any>;
   validators: Set<string>;
   commissions: Map<string, bigint>;
+  payouts: { era: number; validator: string; page: number; estimatedPOT: string; status: string; claimed: boolean }[];
   rewards: Map<string, any[]>;
   capabilities: any;
 };
@@ -412,6 +413,7 @@ export async function collect() {
       accounts,
       validators,
       commissions: candidateByStash,
+      payouts: [...eras.values()],
       rewards: new Map([...rewardRows]),
       capabilities: shape,
     };
