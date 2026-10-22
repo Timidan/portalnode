@@ -210,6 +210,8 @@ function rewards(req: express.Request, res: express.Response, validator?: string
 }
 app.get('/api/rewards', (req, res) => rewards(req, res));
 app.get('/api/rewards/:validator', (req, res) => rewards(req, res, req.params.validator));
+// A receipt proven against a finalized block cannot change.
+const proven = new Map<number, any>();
 app.get('/api/receipts', async (_req, res) => {
   try {
     const { client } = await finalized();
@@ -218,20 +220,18 @@ app.get('/api/receipts', async (_req, res) => {
         'SELECT id,genesis,finalized_block AS blockHash,finalized_number AS blockNumber,extrinsic_index AS extrinsicIndex,tx_hash AS txHash,events FROM tx_attempts WHERE finalized_block IS NOT NULL ORDER BY id DESC',
       )
       .all() as any[];
-    const verified = [];
-    for (const { id, events, ...ref } of rows) {
+    const check = async ({ id, events, ...ref }: any) => {
+      if (proven.has(id)) return proven.get(id);
       const stored = { stored: { blockNumber: ref.blockNumber, rewardEvents: events ? JSON.parse(events) : [] } };
       if (ref.genesis.toLowerCase() !== client.genesisHash.toHex().toLowerCase()) {
-        verified.push({ ...ref, ...stored, verified: false, reason: 'receipt genesis mismatch' });
-        continue;
+        return { ...ref, ...stored, verified: false, reason: 'receipt genesis mismatch' };
       }
       let block: any, chainEvents: any[];
       try {
         block = await client.rpc.chain.getBlock(ref.blockHash);
         chainEvents = [...((await client.query.system.events.at(ref.blockHash)) as any)];
       } catch {
-        verified.push({ ...ref, ...stored, verified: null, reason: 'block no longer served by this node; stored receipt shown' });
-        continue;
+        return { ...ref, ...stored, verified: null, reason: 'block no longer served by this node; stored receipt shown' };
       }
       if (ref.blockNumber == null) {
         ref.blockNumber = block.block.header.number.toNumber();
@@ -239,8 +239,7 @@ app.get('/api/receipts', async (_req, res) => {
       }
       const extrinsic = block.block.extrinsics[ref.extrinsicIndex];
       if (!extrinsic || extrinsic.hash.toHex() !== ref.txHash) {
-        verified.push({ ...ref, ...stored, verified: false, reason: 'extrinsic reference mismatch' });
-        continue;
+        return { ...ref, ...stored, verified: false, reason: 'extrinsic reference mismatch' };
       }
       const rewards = chainEvents.filter(
         (e) =>
@@ -249,13 +248,17 @@ app.get('/api/receipts', async (_req, res) => {
           e.event.section === 'staking' &&
           (e.event.method === 'Reward' || e.event.method === 'Rewarded'),
       );
-      verified.push({
+      const result = {
         ...ref,
         verified: rewards.length > 0,
         rewardEvents: rewards.length,
         ...(!rewards.length && { reason: 'no finalized staking.Reward events' }),
-      });
-    }
+      };
+      if (result.verified) proven.set(id, result);
+      return result;
+    };
+    const verified = [];
+    for (let i = 0; i < rows.length; i += 10) verified.push(...(await Promise.all(rows.slice(i, i + 10).map(check))));
     res.json(verified);
   } catch (e) {
     res
