@@ -118,7 +118,7 @@ app.get('/api/status/:stash', (req, res) => {
     block: network.block.height,
     activeEra: network.era.active,
     window: { from, to: network.era.active - 1 },
-    paidThrough: firstUnpaid > from ? firstUnpaid - 1 : null,
+    paidThrough: mine.length && firstUnpaid > from ? firstUnpaid - 1 : null,
     earnedEras: new Set(mine.map((p) => p.era)).size,
     unpaid: unpaid.map(({ era, page, estimatedPOT, status }) => ({ era, page, estimatedPOT, expiring: status === 'expiring' })),
     keeperClaims: config.allowlist.includes(stash),
