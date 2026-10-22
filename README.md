@@ -29,11 +29,9 @@ Portaldot pays staking rewards only when someone sends a payout transaction, and
 
 - **Claims every era.** `payoutStakersByPage` on V3, `payoutStakers` on runtime 1002, chosen from the runtime's shape.
 - **Fee-only key.** The keeper key pays fees, nothing else. No stash or controller key touches the server.
-- **Crash-safe.** Each signed attempt is saved before broadcast and settled only from a finalized receipt.
-- **Liveness as the chain counts it.** Blocks authored or a heartbeat, per `pallet-im-online`. Warns before a validator is reported offline.
-- **Keys check.** Confirms the session keys on chain are loaded in your node.
+- **Crash-safe, provable receipts.** Each attempt is saved before broadcast and settled only from a finalized receipt, kept with its block number and events so it outlives node pruning.
+- **Liveness as the chain counts it.** Blocks authored or a heartbeat, per `pallet-im-online`. Warns before a validator is reported offline, and checks your node holds its session keys.
 - **Alerts that clear, with the fix.** Telegram and Discord: one message when a problem starts, one when it ends, each with the step that fixes it.
-- **Receipts that outlive the node.** Each payout keeps its block number and decoded events, so it stays provable after public nodes prune old blocks.
 - **Public status API.** `/api/status/<stash>`: how far any validator is paid, open to any wallet or dApp.
 - **Setup wizard.** Bond, keys and validate in one batch, signed in Portaldot's Node Console.
 
