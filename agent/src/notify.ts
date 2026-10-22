@@ -45,7 +45,33 @@ const MESSAGES: Record<string, [string, string?]> = {
   'keeper-error': ['A keeper pass failed.'],
   'collector-error': ['Reading the chain failed.'],
   'genesis-mismatch': ['The connected chain does not match PORTALNODE_GENESIS.'],
+  'offline-risk': [
+    'A validator has neither authored a block nor sent a heartbeat this session; it will be reported offline when the session ends.',
+    'The validator authored a block or sent a heartbeat; it counts as online this session.',
+  ],
+  'keys-not-loaded': [
+    "The validator's next session keys are not in this node's keystore.",
+    "The validator's session keys are loaded in this node.",
+  ],
+  'upstream-node': ['The upstream Portaldot node repository has a new commit.'],
 };
+const FIX: Record<string, string> = {
+  'low-reserve': "Send POT to the keeper account (shown in the console's Keeper view), then turn the keeper back on.",
+  'low-balance': "Send POT to the keeper account (shown in the console's Keeper view).",
+  'keeper-ambiguity': 'Open the console Rewards view, check the paused attempt against the explorer, then clear it.',
+  'runtime-change': 'Check the new runtime in the console, then turn the keeper back on.',
+  'payout-expiring': 'Turn the keeper on, or use Claim now in the console Keeper view.',
+  'runtime-upgrade': 'Compare the node binary with the new runtime; restart the agent if call shapes changed.',
+  'genesis-mismatch': 'Point PORTALNODE_RPC at the right chain or fix PORTALNODE_GENESIS, then restart.',
+  'offline-risk':
+    'Check the node is synced and has peers (console Node view), and that its keys are loaded. Restart the node if it is stuck.',
+  'keys-not-loaded':
+    "Run the console Setup wizard: generate keys on this node, then sign setKeys. Or restore the old keystore to this node's base path.",
+  'upstream-node': 'Read the new commit, then re-pin PORTALDOT_COMMIT and its SHA-256 in deploy/node/Dockerfile if you upgrade.',
+  'collector-error': 'Check PORTALNODE_RPC is reachable; it clears by itself on the next good read.',
+  'keeper-error': 'See the evidence; it clears by itself on the next successful keeper pass.',
+};
+export const fixFor = (kind: string) => FIX[kind] ?? null;
 export const summary = (kind: string) => MESSAGES[kind]?.[0] ?? kind;
 const secrets = [
   config.telegram?.token,
@@ -125,7 +151,7 @@ async function deliver(key: string) {
   const [down, up = 'Recovered.'] = MESSAGES[row.kind] ?? [row.kind];
   const off = KEEPER_STOPS.has(row.kind) && config.mode === 'operator' && !getKeeperStatus().enabled;
   const message = raise
-    ? text(row.severity.toUpperCase(), down, clean(row.evidence))
+    ? text(row.severity.toUpperCase(), down, [clean(row.evidence), FIX[row.kind] && `Fix: ${FIX[row.kind]}`].filter(Boolean).join('\n'))
     : text(
         'RECOVERED',
         `${up}${off ? ' The keeper is still off: turn it on in the console.' : ''}`,
@@ -148,6 +174,7 @@ export function recentAlerts() {
       kind: a.kind,
       severity: a.severity,
       message: summary(a.kind),
+      fix: fixFor(a.kind),
       evidence: clean(a.evidence),
       firstSeen: a.first_seen,
       lastSeen: a.last_seen,

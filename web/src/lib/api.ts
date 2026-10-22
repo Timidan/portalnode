@@ -96,10 +96,11 @@ export type Attempt = {
 };
 export type KeeperStatus = { enabled: boolean; policy: { maxFeePerTx: string; budget24h: string; minReserve: string } | null; inFlight: boolean; allowlist: string[] };
 export type Rewards = { validators: { validator: string; eras: PayoutRow[]; keeper: KeeperStatus; recentAttempts: Attempt[] }[] };
-export type Receipt = { genesis: string; blockHash: string; extrinsicIndex: number; txHash: string; verified: boolean; rewardEvents?: number; reason?: string };
+export type Receipt = { genesis: string; blockHash: string; extrinsicIndex: number; txHash: string; blockNumber?: number | null; verified: boolean | null; rewardEvents?: number; reason?: string;
+  stored?: { blockNumber: number | null; rewardEvents: string[] } };
 export type ChannelResult = Record<string, { ok: boolean; error?: string }>;
 export type AlertRow = {
-  key: string; kind: string; severity: 'critical' | 'warning' | 'info'; message: string; evidence: string;
+  key: string; kind: string; severity: 'critical' | 'warning' | 'info'; message: string; fix: string | null; evidence: string;
   firstSeen: string; lastSeen: string; resolved: boolean;
   delivery: { last: 'raised' | 'recovered' | 'failed'; at: string; result: ChannelResult } | null;
 };

@@ -184,23 +184,34 @@ app.get('/api/receipts', async (_req, res) => {
     const { client } = await finalized();
     const rows = db
       .prepare(
-        'SELECT genesis,finalized_block AS blockHash,extrinsic_index AS extrinsicIndex,tx_hash AS txHash FROM tx_attempts WHERE finalized_block IS NOT NULL ORDER BY id DESC',
+        'SELECT id,genesis,finalized_block AS blockHash,finalized_number AS blockNumber,extrinsic_index AS extrinsicIndex,tx_hash AS txHash,events FROM tx_attempts WHERE finalized_block IS NOT NULL ORDER BY id DESC',
       )
       .all() as any[];
     const verified = [];
-    for (const ref of rows) {
+    for (const { id, events, ...ref } of rows) {
+      const stored = { stored: { blockNumber: ref.blockNumber, rewardEvents: events ? JSON.parse(events) : [] } };
       if (ref.genesis.toLowerCase() !== client.genesisHash.toHex().toLowerCase()) {
-        verified.push({ ...ref, verified: false, reason: 'receipt genesis mismatch' });
+        verified.push({ ...ref, ...stored, verified: false, reason: 'receipt genesis mismatch' });
         continue;
       }
-      const block = await client.rpc.chain.getBlock(ref.blockHash),
-        extrinsic = block.block.extrinsics[ref.extrinsicIndex];
+      let block: any, chainEvents: any[];
+      try {
+        block = await client.rpc.chain.getBlock(ref.blockHash);
+        chainEvents = [...((await client.query.system.events.at(ref.blockHash)) as any)];
+      } catch {
+        verified.push({ ...ref, ...stored, verified: null, reason: 'block no longer served by this node; stored receipt shown' });
+        continue;
+      }
+      if (ref.blockNumber == null) {
+        ref.blockNumber = block.block.header.number.toNumber();
+        db.prepare('UPDATE tx_attempts SET finalized_number=? WHERE id=?').run(ref.blockNumber, id);
+      }
+      const extrinsic = block.block.extrinsics[ref.extrinsicIndex];
       if (!extrinsic || extrinsic.hash.toHex() !== ref.txHash) {
-        verified.push({ ...ref, verified: false, reason: 'extrinsic reference mismatch' });
+        verified.push({ ...ref, ...stored, verified: false, reason: 'extrinsic reference mismatch' });
         continue;
       }
-      const events: any[] = [...((await client.query.system.events.at(ref.blockHash)) as any)];
-      const rewards = events.filter(
+      const rewards = chainEvents.filter(
         (e) =>
           e.phase.isApplyExtrinsic &&
           e.phase.asApplyExtrinsic.toNumber() === ref.extrinsicIndex &&

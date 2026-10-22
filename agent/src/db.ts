@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS network_snapshots (
  stake_concentration TEXT, authority_weights TEXT, identity_count INTEGER, offence_count INTEGER, capability_gaps TEXT,
  computed_at TEXT NOT NULL);
 `);
+if (!(db.prepare('PRAGMA table_info(tx_attempts)').all() as any[]).some((c) => c.name === 'finalized_number'))
+  db.exec('ALTER TABLE tx_attempts ADD COLUMN finalized_number INTEGER');
 let hook: ((key: string) => void) | undefined;
 export const onAlert = (fn: (key: string) => void) => void (hook = fn);
 export function alert(key: string, kind: string, severity: string, evidence: string) {

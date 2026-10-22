@@ -209,9 +209,9 @@ function RewardsView({ rewards, receipts, net }: { rewards: Load<Rewards>; recei
                   <ul className="space-y-2 font-mono text-[13px]">
                     {rs.map((r) => (
                       <li key={r.txHash} className="flex flex-wrap items-center gap-2">
-                        {r.verified ? <CheckCircle size={16} className="text-mint" /> : <Warning size={16} className="text-accent" />}
+                        {r.verified ? <CheckCircle size={16} className="text-mint" /> : r.verified === null ? <Info size={16} className="text-muted" /> : <Warning size={16} className="text-accent" />}
                         {short(r.txHash, 8)}<Copy text={r.txHash} /> · block {short(r.blockHash, 6)} · extrinsic {r.extrinsicIndex}
-                        {r.verified ? ` · ${r.rewardEvents} Reward events` : ` · ${r.reason}`}
+                        {r.verified ? ` · ${r.rewardEvents} Reward events` : r.verified === null ? ` · stored: block ${r.stored?.blockNumber ?? '?'}, ${r.stored?.rewardEvents.length ?? 0} Reward events` : ` · ${r.reason}`}
                       </li>
                     ))}
                   </ul>
@@ -404,6 +404,7 @@ function KeeperView({ health, rewards, unit }: { health: Load<Health>; rewards: 
                       {a.resolved ? <CheckCircle size={18} className="mt-0.5 shrink-0 text-mint" /> : a.severity === 'info' ? <Info size={18} className="mt-0.5 shrink-0 text-muted" /> : <Warning size={18} className={`mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-coral' : 'text-accent'}`} />}
                       <div className="min-w-0 flex-1">
                         <p className={a.resolved ? 'text-ink/60' : 'text-ink/90'}>{a.message}</p>
+                        {a.fix && !a.resolved && <p className="mt-1 text-[13px] text-accent">Fix: {a.fix}</p>}
                         {a.evidence && <p className="mt-0.5 font-mono text-[12px] break-all text-muted">{a.evidence}</p>}
                         {failed.length > 0 && <p className="mt-0.5 text-[12px] text-accent">Not delivered: {failed.map(([k, r]) => `${k} ${r.error}`).join(' · ')}</p>}
                       </div>

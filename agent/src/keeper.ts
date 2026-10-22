@@ -63,13 +63,13 @@ async function reconcile(client: ApiPromise) {
   for (const a of pending) {
     const headHash = await client.rpc.chain.getFinalizedHead(),
       head = (await client.rpc.chain.getHeader(headHash)).number.toNumber();
-    let found: { hash: string; index: number } | null = null;
+    let found: { hash: string; index: number; number: number } | null = null;
     for (let h = a.birth; h <= Math.min(head, a.death); h++) {
       const bh = await client.rpc.chain.getBlockHash(h),
         block = await client.rpc.chain.getBlock(bh);
       const idx = [...block.block.extrinsics].findIndex((ex) => ex.hash.toHex() === a.tx_hash);
       if (idx >= 0) {
-        found = { hash: bh.toHex(), index: idx };
+        found = { hash: bh.toHex(), index: idx, number: h };
         break;
       }
     }
@@ -98,9 +98,10 @@ async function reconcile(client: ApiPromise) {
       );
       const actualFee = feeEvent ? ((feeEvent.event.data as any)[1]?.toString() ?? null) : null;
       db.prepare(
-        "UPDATE tx_attempts SET status='settled',finalized_block=?,extrinsic_index=?,events=?,fee_actual=?,charged_at=? WHERE id=?",
+        "UPDATE tx_attempts SET status='settled',finalized_block=?,finalized_number=?,extrinsic_index=?,events=?,fee_actual=?,charged_at=? WHERE id=?",
       ).run(
         found.hash,
+        found.number,
         found.index,
         JSON.stringify(rewards.map((r) => r.event.data.toString())),
         actualFee,
@@ -367,9 +368,10 @@ export async function runOnce(force = false) {
     const actualFee = feeEvent ? ((feeEvent.event.data as any)[1]?.toString() ?? null) : null;
     const status = failed ? 'terminal' : rewardEvents.length ? 'claimed' : 'terminal';
     db.prepare(
-      "UPDATE tx_attempts SET status='settled',finalized_block=?,extrinsic_index=?,events=?,fee_actual=?,charged_at=?,error=? WHERE id=?",
+      "UPDATE tx_attempts SET status='settled',finalized_block=?,finalized_number=?,extrinsic_index=?,events=?,fee_actual=?,charged_at=?,error=? WHERE id=?",
     ).run(
       finalizedHash,
+      block.block.header.number.toNumber(),
       index,
       JSON.stringify(rewardEvents.map((r) => r.event.data.toString())),
       actualFee,
