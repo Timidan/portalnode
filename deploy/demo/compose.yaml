@@ -19,6 +19,7 @@ services:
       PORTALNODE_BUDGET_24H: "5"
       PORTALNODE_MIN_RESERVE: "1"
       PORTALNODE_KEEPER: "on"
+      PORTALNODE_HEALTH_CONTRACT: "0x072a1022f537a0da496801239725539101a41bb2"
       PORTALNODE_DB: /state/portalnode.db
       PORTALNODE_ALLOWED_HOSTS: portalnode.timidan.xyz
       PORTALNODE_ALLOWED_ORIGINS: https://portalnode.timidan.xyz
