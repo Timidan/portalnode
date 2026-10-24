@@ -425,6 +425,15 @@ export async function collect() {
   }
 }
 
+// Last era with every page claimed, or null when the oldest era in the window is unpaid or nothing was earned.
+export function paidThrough(stash: string) {
+  if (!snapshot) return null;
+  const { era } = snapshot.network,
+    mine = snapshot.payouts.filter((p) => p.validator === stash),
+    first = Math.min(era.active, ...mine.filter((p) => !p.claimed).map((p) => p.era));
+  return mine.length && first > era.claimableFrom ? first - 1 : null;
+}
+
 export function getRewardRows(address: string) {
   return snapshot?.rewards.get(address) ?? [];
 }

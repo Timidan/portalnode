@@ -4,7 +4,8 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { connect, finalized, api } from './chain.js';
-import { collect, snapshot, snapshotError, getRewardRows } from './collector.js';
+import { collect, snapshot, snapshotError, getRewardRows, paidThrough } from './collector.js';
+import { reportHealth } from './health.js';
 import { config } from './config.js';
 import { db, alert, resolveAlert } from './db.js';
 import { disable, enable, getKeeperStatus, runOnce, setPolicy } from './keeper.js';
@@ -109,8 +110,7 @@ app.get('/api/status/:stash', (req, res) => {
   const { network, payouts } = snapshot!,
     mine = payouts.filter((p) => p.validator === stash),
     unpaid = mine.filter((p) => !p.claimed),
-    from = network.era.claimableFrom,
-    firstUnpaid = Math.min(network.era.active, ...unpaid.map((p) => p.era));
+    from = network.era.claimableFrom;
   res.set('X-Snapshot-Block', network.block.hash);
   res.json({
     stash,
@@ -118,7 +118,7 @@ app.get('/api/status/:stash', (req, res) => {
     block: network.block.height,
     activeEra: network.era.active,
     window: { from, to: network.era.active - 1 },
-    paidThrough: mine.length && firstUnpaid > from ? firstUnpaid - 1 : null,
+    paidThrough: paidThrough(stash),
     earnedEras: new Set(mine.map((p) => p.era)).size,
     unpaid: unpaid.map(({ era, page, estimatedPOT, status }) => ({ era, page, estimatedPOT, expiring: status === 'expiring' })),
     keeperClaims: config.allowlist.includes(stash),
@@ -137,6 +137,7 @@ app.get('/api/claim/:stash', async (req, res) => {
   const era = req.query.era === undefined ? null : Number(req.query.era);
   const open = snapshot!.payouts
     .filter((p) => p.validator === stash && !p.claimed && (era === null || p.era === era))
+    .sort((a, b) => a.era - b.era || a.page - b.page)
     .slice(0, 10);
   if (!open.length) {
     res.status(404).json({ status: 'none', reason: 'Nothing unclaimed for this validator' });
@@ -325,6 +326,7 @@ async function keep() {
   try {
     while ((await runOnce()).action === 'submitted');
     resolveAlert('keeper-error');
+    await reportHealth().catch((e) => console.warn(`Health report failed: ${e instanceof Error ? e.message : e}`));
   } catch (e) {
     alert('keeper-error', 'keeper-error', 'warning', String(e));
   } finally {
