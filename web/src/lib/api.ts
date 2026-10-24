@@ -52,18 +52,18 @@ function normalize(n: Network): Network {
   };
 }
 
-export function useNetwork(): Load<Network> {
+export function useNetwork(path = '/api/network'): Load<Network> {
   const [s, set] = useState<Load<Network>>({ state: 'loading' });
   useEffect(() => {
     let live = true;
-    const pull = () => getJson<Network>('/api/network')
+    const pull = () => getJson<Network>(path)
       .then(normalize)
       .then((data) => live && set({ state: 'ok', data }))
       .catch((e) => live && set((prev) => (prev.state === 'ok' ? prev : { state: 'error', reason: String(e.message ?? e) })));
     pull();
     const id = setInterval(pull, 60_000);
     return () => { live = false; clearInterval(id); };
-  }, []);
+  }, [path]);
   return s;
 }
 

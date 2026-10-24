@@ -30,6 +30,23 @@ services:
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
     mem_limit: 512m
+  # Read-only view of Portaldot mainnet for the landing page, served at /mainnet/*. No keys, no alerts.
+  mainnet:
+    image: portalnode-agent:${PORTALNODE_IMAGE_TAG:?set PORTALNODE_IMAGE_TAG}
+    restart: unless-stopped
+    networks:
+      public_proxy:
+        aliases: [portalnode-mainnet-agent]
+    environment:
+      PORTALNODE_MODE: observer
+      PORTALNODE_RPC: wss://mainnet.portaldot.io
+      PORTALNODE_DB: /tmp/portalnode.db
+      PORTALNODE_UPSTREAM_CHECK: "off"
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 512m
 networks:
   public_proxy:
     external: true

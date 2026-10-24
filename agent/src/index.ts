@@ -12,7 +12,7 @@ import { latestSample, sampleNode } from './node-health.js';
 import { channels, recentAlerts, sendTest, watch } from './notify.js';
 import { liveness } from './liveness.js';
 import { decimal, percent } from './rewards.js';
-import { build, Invalid, preflight, rotateKeys, status as wizardStatus } from './wizard.js';
+import { build, consoleLink, Invalid, preflight, rotateKeys, status as wizardStatus } from './wizard.js';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
 const app = express();
@@ -123,6 +123,42 @@ app.get('/api/status/:stash', (req, res) => {
     unpaid: unpaid.map(({ era, page, estimatedPOT, status }) => ({ era, page, estimatedPOT, expiring: status === 'expiring' })),
     keeperClaims: config.allowlist.includes(stash),
   });
+});
+// Anyone may send a payout. This builds the call for the visitor to sign with their own wallet in Node Console.
+app.get('/api/claim/:stash', async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  const stash = ss58(req.params.stash, res);
+  if (!stash) return;
+  const reason = snapshotStatus();
+  if (reason) {
+    res.status(503).json({ status: 'unavailable', reason });
+    return;
+  }
+  const era = req.query.era === undefined ? null : Number(req.query.era);
+  const open = snapshot!.payouts
+    .filter((p) => p.validator === stash && !p.claimed && (era === null || p.era === era))
+    .slice(0, 10);
+  if (!open.length) {
+    res.status(404).json({ status: 'none', reason: 'Nothing unclaimed for this validator' });
+    return;
+  }
+  try {
+    const { client } = await finalized();
+    const calls = open.map((p) =>
+      p.page >= 0
+        ? client.tx.staking.payoutStakersByPage(stash, p.era, p.page)
+        : client.tx.staking.payoutStakers(stash, p.era),
+    );
+    const callHex = (calls.length === 1 ? calls[0] : client.tx.utility.batch(calls)).method.toHex();
+    res.json({
+      stash,
+      payouts: open.map(({ era, page }) => ({ era, page })),
+      callHex,
+      deepLink: consoleLink(client.genesisHash.toHex().toLowerCase(), callHex),
+    });
+  } catch (e) {
+    res.status(503).json({ status: 'unavailable', reason: e instanceof Error ? e.message : String(e) });
+  }
 });
 app.get('/api/nominator/:address', (req, res) => {
   const address = ss58(req.params.address, res);

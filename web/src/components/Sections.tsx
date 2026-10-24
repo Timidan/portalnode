@@ -25,14 +25,14 @@ function Unavailable({ what, reason }: { what: string; reason: string }) {
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-line bg-card/60 p-5 text-[15px] text-ink/80">
       <Warning size={20} className="mt-0.5 shrink-0 text-accent" />
-      <span>Couldn't load {what} from the mainnet node right now ({reason}). Nothing on this page is shown as zero when it's unknown.</span>
+      <span>Couldn't load {what} from the chain right now ({reason}). Nothing on this page is shown as zero when it's unknown.</span>
     </div>
   );
 }
 
-export function LiveNumbers({ net }: { net: Load<Network> }) {
+export function LiveNumbers({ net, id = 'network' }: { net: Load<Network>; id?: string }) {
   return (
-    <section id="network" className="mx-auto max-w-6xl px-6 pt-28">
+    <section id={id} className="mx-auto max-w-6xl px-6 pt-28">
       <motion.p {...reveal} className="flex items-center gap-2 text-[15px] font-medium text-accent">{net.state === 'ok' && <NetworkMark genesis={net.data.genesis} />}Live from {net.state === 'ok' ? chainOf(net.data.genesis).name : 'Portaldot'}</motion.p>
       <motion.h2 {...reveal} className="mt-3 max-w-[20ch] text-[clamp(28px,4.6vw,60px)] [overflow-wrap:anywhere] display">
         {net.state === 'ok' && keptUp(net.data) ? 'Nothing has expired while PortalNode is on duty.' : "Rewards are expiring while nobody's looking."}
@@ -302,15 +302,42 @@ function NetworkPane({ net }: { net: Network }) {
   );
 }
 
-export function NominatorCheck({ net }: { net: Load<Network> }) {
-  const genesis = net.state === 'ok' ? net.data.genesis : undefined;
+function ClaimLink({ base, stash, era, label }: { base: string; stash: string; era?: number; label: string }) {
+  const [err, setErr] = useState<string | null>(null);
+  const open = async () => {
+    setErr(null);
+    const tab = window.open('', '_blank');
+    try {
+      const r = await getJson<{ deepLink: string }>(`${base}/api/claim/${stash}${era === undefined ? '' : `?era=${era}`}`);
+      if (tab) tab.location.href = r.deepLink;
+      else location.href = r.deepLink;
+    } catch (e) {
+      tab?.close();
+      setErr((e as Error).message);
+    }
+  };
+  return (
+    <span className="inline-flex flex-col">
+      <button type="button" onClick={open} className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[14px] font-medium text-paper">
+        <Coins size={16} />{label}
+      </button>
+      {err && <span className="mt-1 text-[13px] text-accent">{err}</span>}
+    </span>
+  );
+}
+
+export function NominatorCheck({ net, mainnet }: { net: Load<Network>; mainnet: Load<Network> }) {
+  const nets = [{ base: '', net }, ...(mainnet.state === 'ok' ? [{ base: '/mainnet', net: mainnet }] : [])];
+  const [which, setWhich] = useState(0);
+  const { base, net: cur } = nets[Math.min(which, nets.length - 1)];
+  const genesis = cur.state === 'ok' ? cur.data.genesis : undefined;
   const [addr, setAddr] = useState('');
   const [res, setRes] = useState<Load<Nominator> | null>(null);
   const check = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addr.trim()) return;
     setRes({ state: 'loading' });
-    try { setRes({ state: 'ok', data: await getJson<Nominator>(`/api/nominator/${encodeURIComponent(addr.trim())}`) }); }
+    try { setRes({ state: 'ok', data: await getJson<Nominator>(`${base}/api/nominator/${encodeURIComponent(addr.trim())}`) }); }
     catch (err) { setRes({ state: 'error', reason: (err as Error).message }); }
   };
   return (
@@ -323,6 +350,19 @@ export function NominatorCheck({ net }: { net: Load<Network> }) {
           </motion.p>
         </div>
         <motion.div {...reveal} className="rounded-[28px] border border-line bg-card p-6 md:p-8">
+          {nets.length > 1 && (
+            <div role="radiogroup" aria-label="Network" className="mb-4 flex gap-2">
+              {nets.map((x, i) => {
+                const g = x.net.state === 'ok' ? x.net.data.genesis : undefined;
+                return (
+                  <button key={x.base} type="button" role="radio" aria-checked={i === which} onClick={() => { setWhich(i); setRes(null); }}
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-[14px] ${i === which ? 'bg-ink text-paper' : 'bg-paper text-ink/75 shadow-[inset_0_0_0_1px_#1414131f]'}`}>
+                    <img src={chainOf(g).logo} alt="" className="h-4 w-4" />{chainOf(g).name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <form onSubmit={check} className="flex gap-2">
             <label htmlFor="addr" className="sr-only">Portaldot address</label>
             <input
@@ -335,7 +375,7 @@ export function NominatorCheck({ net }: { net: Load<Network> }) {
             {!res && <p className="text-[15px] text-muted">Results come straight from {chainOf(genesis).name}, read by this PortalNode.</p>}
             {res?.state === 'loading' && <div className="h-40 animate-pulse rounded-2xl bg-ink/[0.04]" />}
             {res?.state === 'error' && <p className="text-[15px] text-accent">{res.reason === 'HTTP 400' ? "That doesn't look like a Portaldot address." : `Couldn't check that address: ${res.reason}`}</p>}
-            {res?.state === 'ok' && <NominatorResult n={res.data} genesis={genesis} />}
+            {res?.state === 'ok' && <NominatorResult n={res.data} genesis={genesis} base={base} />}
           </div>
         </motion.div>
       </div>
@@ -343,7 +383,7 @@ export function NominatorCheck({ net }: { net: Load<Network> }) {
   );
 }
 
-function NominatorResult({ n, genesis }: { n: Nominator; genesis?: string }) {
+function NominatorResult({ n, genesis, base }: { n: Nominator; genesis?: string; base: string }) {
   const total = n.expiring.reduce((s, e) => s + Number(e.estimatedNominatorPOT), 0);
   const { unit } = chainOf(genesis);
   if (n.role === 'validator') {
@@ -357,6 +397,9 @@ function NominatorResult({ n, genesis }: { n: Nominator; genesis?: string }) {
           </p>
         ) : (
           <p className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-700" />Every payout in the 84-era window is claimed{n.keeperClaims ? ", by this PortalNode's keeper" : ''}.</p>
+        )}
+        {n.unclaimed.length > 0 && !n.keeperClaims && (
+          <ClaimLink base={base} stash={n.address} label={`Claim ${Math.min(n.unclaimed.length, 10)} now, signed in Node Console`} />
         )}
       </div>
     );
@@ -376,7 +419,14 @@ function NominatorResult({ n, genesis }: { n: Nominator; genesis?: string }) {
         ))}
       </ul>
       {n.expiring.length > 0 && (
-        <p className="flex items-center gap-2 text-ink/80"><ArrowRight size={16} />About {total.toLocaleString('en-US', { maximumFractionDigits: 2 })} {unit} of your rewards expire in the next 7 days (estimate). Claiming from this page comes later.</p>
+        <div className="space-y-3">
+          <p className="flex items-center gap-2 text-ink/80"><ArrowRight size={16} />About {total.toLocaleString('en-US', { maximumFractionDigits: 2 })} {unit} of your rewards expire in the next 7 days (estimate). Anyone can claim them; you sign with your own wallet.</p>
+          <div className="flex flex-wrap gap-2">
+            {[...new Set(n.expiring.map((e) => e.validator))].map((v) => (
+              <ClaimLink key={v} base={base} stash={v} label={`Claim via ${v.slice(0, 6)}…${v.slice(-4)}`} />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

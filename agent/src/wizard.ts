@@ -248,6 +248,11 @@ export async function rotateKeys(body: any) {
   return { keys, proof, decoded: await keyParts(client, keys) };
 }
 
+const rpcFor = (genesis: string) =>
+  /^wss?:\/\/(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(config.rpc) ? (PUBLIC_RPC[genesis] ?? config.rpc) : config.rpc;
+export const consoleLink = (genesis: string, callHex: string) =>
+  `https://node-console.portaldot.dev/?rpc=${encodeURIComponent(rpcFor(genesis))}#/extrinsics/decode/${callHex}`;
+
 export async function build(body: any) {
   const st = await stashState(body?.stash);
   const { client, unit } = st;
@@ -296,9 +301,7 @@ export async function build(body: any) {
     );
   const callHex = tx.method.toHex(),
     genesis = client.genesisHash.toHex().toLowerCase();
-  const rpc = /^wss?:\/\/(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(config.rpc)
-    ? (PUBLIC_RPC[genesis] ?? config.rpc)
-    : config.rpc;
+  const rpc = rpcFor(genesis);
   return {
     callHex,
     signer,
@@ -309,7 +312,7 @@ export async function build(body: any) {
     feePOT: decimal(fee),
     unit,
     rpc,
-    deepLink: `https://node-console.portaldot.dev/?rpc=${encodeURIComponent(rpc)}#/extrinsics/decode/${callHex}`,
+    deepLink: consoleLink(genesis, callHex),
     warnings,
   };
 }
