@@ -200,7 +200,7 @@ export function ConsolePreview({ net }: { net: Load<Network> }) {
       <motion.div {...reveal} className="mt-6 overflow-hidden rounded-[22px] bg-con text-con-fg shadow-[0_40px_80px_-40px_#141413aa]">
         <div className="flex items-center gap-2 border-b border-white/10 px-5 py-3.5 text-[13px] text-con-fg/60">
           <span className="h-2.5 w-2.5 rounded-full bg-card/20" /><span className="h-2.5 w-2.5 rounded-full bg-card/20" /><span className="h-2.5 w-2.5 rounded-full bg-card/20" />
-          <span className="ml-3">PortalNode console · preview with live mainnet data</span>
+          <span className="ml-3">PortalNode console · live preview</span>
         </div>
         <div className="grid min-h-[440px] md:grid-cols-[200px_1fr]">
           <aside className="hidden border-r border-white/10 p-4 text-[14px] md:block">
@@ -349,9 +349,9 @@ export function NominatorCheck({ net, mainnet }: { net: Load<Network>; mainnet: 
             Paste a Portaldot address to see whether the validators you back are still active, what they charge, and which of your rewards expire soon. Read-only: nothing is signed.
           </motion.p>
         </div>
-        <motion.div {...reveal} className="rounded-[28px] border border-line bg-card p-6 md:p-8">
+        <motion.div {...reveal} className="min-w-0 rounded-[28px] border border-line bg-card p-6 md:p-8">
           {nets.length > 1 && (
-            <div role="radiogroup" aria-label="Network" className="mb-4 flex gap-2">
+            <div role="radiogroup" aria-label="Network" className="mb-4 flex flex-wrap gap-2">
               {nets.map((x, i) => {
                 const g = x.net.state === 'ok' ? x.net.data.genesis : undefined;
                 return (
@@ -435,7 +435,7 @@ function NominatorResult({ n, genesis, base }: { n: Nominator; genesis?: string;
 export function Footer() {
   return (
     <footer className="mx-auto mt-40 max-w-6xl border-t border-line px-6 py-10 text-[14px] text-muted">
-      <p>PortalNode design lab · built for the Portaldot Hacker House 2026 · data read from wss://mainnet.portaldot.io · reward amounts are estimates using Portaldot's stake-weighted payout formula.</p>
+      <p>PortalNode · built for the Portaldot Hacker House 2026 · data read live from the Portaldot V3 testnet and mainnet · reward amounts are estimates from Portaldot's payout formula.</p>
     </footer>
   );
 }
