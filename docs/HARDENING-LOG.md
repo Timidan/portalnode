@@ -55,6 +55,13 @@ Experiments run in scratch, outside this repo, before the coding window. Each li
 - Liveness from `pallet-im-online` state, session-key check against the operator's node, setup wizard (proven on the dev chain with a signed batch; V3 call fee-quoted only), validator account check, upstream-node alert.
 - Guided `setup` and Compose `addon`/`full` profiles written (21 Oct). Not yet run end to end in Docker.
 
+## 22–25 Oct 2026: on-chain health, mainnet, claim it yourself
+- Every alert now carries its fix; receipts store their block number and decoded `Rewarded` events, so they stay provable after the public node prunes old blocks (Steel reported fast pruning on V3).
+- `GET /api/status/:stash`: paid-through era and unpaid pages for any validator, CORS-open. `/api/receipts` checked each receipt one after another (75 s at 78 receipts, growing every era); it now checks ten at a time and keeps proven ones in memory (about 1 s warm).
+- V3 contracts run on `pallet-revive` with `allowEVMBytecode` and `autoMap`, so the keeper's sr25519 key calls contracts through `revive.call` with no second key. Deploying `ValidatorHealth` (2,730 bytes) needs a 218.48 tPOT storage deposit (0.06 tPOT per byte); the keeper had 8.57. 25 Oct: topped up with 250 tPOT from the registration account (tx `0x49af4898…`), deployed at `0x072a1022f537a0da496801239725539101a41bb2` (block 181,327), first report for era 50 in block 181,352; read back through the EVM RPC: both validators paid through 49, online, `isHealthy` true. Report calldata is checked against `cast calldata` in `health.test.ts`.
+- Mainnet, read-only agent behind `/mainnet/*` (25 Oct, block 2,740,904): 102,913 POT unclaimed in the window, 4 of 10 validators with no era claimed, 2.78M POT bonded to an inactive validator, 93.7% of stake on one validator. The account check now builds a `utility.batch` of up to ten payouts, oldest era first, and opens it in Node Console for the visitor's wallet; Node Console decodes it as ten `staking.payoutStakers` calls. Not yet signed by a real wallet.
+- Found on the way: the claim batch first came out in storage order rather than oldest first (fixed before release); the landing page scrolled sideways on phones because the account-check card could not shrink inside its grid (`min-w-0`).
+
 ## Pending
 - Corrected reward numbers with the fork formula, validated against a real mainnet payout: Codex.
 - Prove one wallet signing on runtime 1002 (needs the user's browser and a dev account): after kick-off.
