@@ -1,6 +1,6 @@
 # DoraHacks BUIDL form
 
-Paste field by field. Numbers as of 25 Oct; the live count is at https://portalnode.timidan.xyz/api/receipts.
+Paste field by field. Numbers as of 26 Oct; the live count is at https://portalnode.timidan.xyz/api/receipts.
 
 ## BUIDL name
 PortalNode
@@ -9,7 +9,7 @@ PortalNode
 `docs/assets/logo.png` (512 × 512)
 
 ## Vision
-Portaldot staking rewards expire unless someone claims them. PortalNode claims them every era for validators and their nominators, and alerts operators before their node causes a loss.
+Claims Portaldot staking rewards before they expire: 112 payouts claimed unattended on V3, and 118,837 POT still unclaimed on mainnet.
 
 ## Category / track
 Node Operations & Tooling
@@ -28,31 +28,34 @@ Portaldot, staking, validator, node operations, keeper, monitoring
 
 ## Description (Markdown)
 
-**PortalNode claims Portaldot staking rewards before they expire, and tells operators when their node needs attention.**
+**PortalNode claims Portaldot staking rewards before they expire.** Since 18 Oct it has sent 112 payouts on the V3 testnet by itself, about a minute after each era closes. On mainnet, 118,837 POT sits unclaimed and 4 of 10 validators have claimed nothing in 84 eras.
 
-Portaldot pays staking rewards only when someone sends a payout transaction, and an unclaimed era is lost after 84 eras. Anyone may send it; usually nobody does. PortalNode sends it every era from a separate fee-only key, watches each validator's liveness the way the chain counts it, and alerts on Telegram or Discord before something goes wrong.
+### What sets PortalNode apart
+- **It sends the payouts.** Real `staking.payoutStakersByPage` transactions from a fee-only key, each settled from a finalized receipt and re-verified live. Monitoring says rewards are expiring; PortalNode claims them.
+- **Anyone can claim.** Look up any validator or nominator on V3 or mainnet; one click builds the payout batch, oldest era first, and opens it in Node Console for your own wallet.
+- **Paid-through eras on-chain.** Each era the keeper writes every validator's last fully paid era (from `claimedRewards`) and its `pallet-im-online` liveness to a Solidity contract any dApp can query.
 
-### What it does
-- **Claims every era, from a fee-only key.** `payoutStakersByPage` on the V3 testnet, `payoutStakers` on mainnet runtime 1002. No stash or controller key touches the server.
+### Why it matters
+Portaldot pays staking rewards only when someone sends a payout transaction, and an unclaimed era is lost after 84 eras. Anyone may send it; usually nobody does.
+
+### Also in the box
 - **Crash-safe, provable receipts.** Each attempt is saved before broadcast and settled only from a finalized receipt, kept with its block number and events so it outlives node pruning.
 - **Liveness as the chain counts it** (`pallet-im-online`: blocks or a heartbeat). Warns before a validator is reported offline and checks the node holds its session keys.
 - **Alerts with the fix.** Telegram and Discord: one message when a problem starts, one when it clears, each with the step that fixes it.
-- **Validator health on-chain.** A Solidity contract on V3's EVM side (`pallet-revive`). The keeper writes every validator's paid-through era and liveness each era; any contract calls `isHealthy()`.
-- **Anyone can claim.** `GET /api/status/<stash>` says how far any validator is paid; one click builds the payout batch and opens it in Node Console for the visitor's own wallet, on V3 or mainnet.
 - **Setup wizard.** Bond, keys and validate in one `utility.batchAll`, signed in Portaldot's Node Console.
 
 ### Evidence (Portaldot V3 testnet)
 Nobody was claiming on V3. On 18 Oct PortalNode claimed all 48 open payouts, then kept going unattended, about a minute after each era closed.
 
-- **98 payouts, 168.86 tPOT** paid to the validators by 25 Oct, every receipt re-verified against its finalized block.
-- Health contract: `0x072a1022f537a0da496801239725539101a41bb2`, deployed in block 181,327 (tx `0x2be541a9…`), first per-era report in block 181,352 (tx `0xf9d5947f…`).
+- **112 payouts, 193.14 tPOT** paid to the validators by 26 Oct, every receipt re-verified against its finalized block.
+- Health contract: `0x072a1022f537a0da496801239725539101a41bb2`, deployed in block 181,327 (tx `0x2be541a9…`), reported every era since era 50 (era 57: paid through 56).
 - Keeper account: `5HCFicFwm7GoC8R4swpr2WTFFvkH1WkzJQdVcsq6jMFDQVk3`
 - First payout: [block 90,847 in Node Console](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x8a413a135c18c6ec2349f16a3c24aa635f359db1ce7cf642e66d89f04590f62f)
 - Live receipts: https://portalnode.timidan.xyz/api/receipts
 - Endpoint: `wss://test-node-v3.portaldot.dev`
 
-### Mainnet today (read-only, block 2,740,904)
-- **102,913 POT** unclaimed in the 84-era window; **6,084 POT** expires within 7 days.
+### Mainnet today (read-only, block 2,743,244)
+- **118,837 POT** unclaimed in the 84-era window; **6,084 POT** expires within 7 days.
 - **4 of 10** validators have claimed none of the last 84 eras.
 - **2,784,800 POT** is bonded to an inactive validator and earns nothing.
 - **93.7%** of stake sits with one validator; finality halts if 4 of 10 validators stop.
