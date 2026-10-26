@@ -225,8 +225,11 @@ function rewards(req: express.Request, res: express.Response, validator?: string
     return;
   }
   const validators = validator ? [validator] : config.allowlist;
-  const payouts = validators.flatMap(
-    (v) => db.prepare('SELECT * FROM payouts WHERE validator=? ORDER BY era DESC').all(v) as any[],
+  const payouts = validators.flatMap((v) =>
+    (db.prepare('SELECT * FROM payouts WHERE validator=? ORDER BY era DESC').all(v) as any[]).map((p) => ({
+      ...p,
+      paid: p.paid == null ? null : decimal(BigInt(p.paid)),
+    })),
   );
   const attempts = validators.flatMap(
     (v) =>
