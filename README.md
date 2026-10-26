@@ -94,7 +94,7 @@ On the V3 testnet nobody was claiming. On 18 Oct PortalNode claimed all 48 open 
 
 Crash recovery, double-claim refusal and dev-chain tests: [docs/HARDENING-LOG.md](docs/HARDENING-LOG.md).
 
-Read it from any EVM tool (the key is validator `5F4ZyJ…fYY`'s public key):
+The deploy and report hashes are Substrate extrinsics (`revive.*`), so `eth_getTransactionByHash` returns null for them; open the block in Node Console. The source recompiles to the on-chain code byte for byte apart from the 40-byte immutable `reporter`. Read it from any EVM tool (the key is validator `5F4ZyJ…fYY`'s public key):
 
 ```bash
 cast call 0x072a1022f537a0da496801239725539101a41bb2 "statusOf(bytes32)(uint32,uint32,bool,uint64)" \

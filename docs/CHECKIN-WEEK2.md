@@ -37,6 +37,7 @@ PortalNode uses native staking calls, so there is no contract address. Evidence 
 - Contract address: `0x072a1022f537a0da496801239725539101a41bb2` (EVM RPC `https://test-evm-rpc-v3.portaldot.dev`)
 - Contract deploy: tx `0x2be541a935ca67ee63146598fe71b9fe54c7254fcc16e5084ad84cb21aa17705`, block 181,327 — [open in Node Console](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0xcac13a8520efa94aae9385e64378dce6fdd0016ca12fd55de54de06bf8e721a9)
 - First health report: tx `0xf9d5947ffb1a9e5875942deed65840495e1b6570d3fd03aa95a82b6a36723c5c`, block 181,352 — [open in Node Console](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x071ee8af96f9944ce8975aa2570905241e16c2e6d78c536a8848e220d45fe7dd)
+- These are Substrate extrinsic hashes (`revive.instantiateWithCode`, `revive.call`), so the EVM RPC's `eth_getTransactionByHash` returns null for them: open the block in Node Console instead. On the EVM side, check `eth_getCode` at the address and read `statusOf`; the source recompiles to the on-chain code byte for byte apart from the 40-byte immutable `reporter` (`forge build` in `contracts/`).
 
 ## Demo
 Working demo link: https://portalnode.timidan.xyz (the console is at `/console`; real V3 testnet data, no mock data).
