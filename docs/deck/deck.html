@@ -174,6 +174,19 @@
         letter-spacing: -0.05em;
         line-height: 1;
       }
+      .tok {
+        display: inline-block;
+        width: 0.86em;
+        height: 0.86em;
+        margin: 0 0.16em 0 0.06em;
+        vertical-align: -0.1em;
+      }
+      .fact .n .u {
+        font-size: 0.42em;
+        letter-spacing: -0.01em;
+        color: var(--muted);
+        margin-left: 0.18em;
+      }
       .fact .t {
         margin-top: 22px;
         font-size: 32px;
@@ -472,7 +485,7 @@
       <div class="facts">
         <div class="fact"><div class="n">84 eras</div><div class="t">then an unclaimed reward is gone for good</div><div class="s">staking history depth, mainnet and V3</div></div>
         <div class="fact"><div class="n acc">4 of 10</div><div class="t">mainnet validators have claimed nothing in that window</div><div class="s">every era 3,831–3,914 unpaid</div></div>
-        <div class="fact"><div class="n">2.78M</div><div class="t">POT bonded to an inactive validator, earning nothing</div><div class="s">7 nominator accounts</div></div>
+        <div class="fact"><div class="n">2.78M<span class="u"><img class="tok" src="img/pot.png" alt="" />POT</span></div><div class="t">bonded to an inactive validator, earning nothing</div><div class="s">7 nominator accounts</div></div>
       </div>
       <div class="rows" id="rows"></div>
       <div class="src">eras 3,831–3,914 · block 2,743,403 · amber expires this week · grey unclaimed · dark claimed</div>
@@ -547,11 +560,11 @@
       <div class="kicker">Evidence · all checkable on chain</div>
       <h2>Running unattended since 18 October.</h2>
       <table>
-        <tr><td>Payouts claimed on V3</td><td><b>126</b> (eras 1–63, both validators), <b>217.46 tPOT</b>, each about a minute after its era closed</td></tr>
+        <tr><td>Payouts claimed on V3</td><td><b>126</b> (eras 1–63, both validators), <b>217.46 <img class="tok" src="img/pot.png" alt="" />tPOT</b>, each about a minute after its era closed</td></tr>
         <tr><td>Receipts</td><td>every one re-verified live against its finalized block: <span class="mono">portalnode.timidan.xyz/api/receipts</span></td></tr>
         <tr><td>ValidatorHealth contract</td><td><span class="mono">0x072a1022f537a0da496801239725539101a41bb2</span>, reported every era since era 50; source recompiles byte for byte</td></tr>
         <tr><td>Keeper account</td><td><span class="mono">5HCFicFwm7GoC8R4swpr2WTFFvkH1WkzJQdVcsq6jMFDQVk3</span> (pays fees only)</td></tr>
-        <tr><td>Mainnet, read-only</td><td>140,040 POT unclaimed; 4 of 10 validators unpaid; 93.7% of stake on one validator</td></tr>
+        <tr><td>Mainnet, read-only</td><td>140,040 <img class="tok" src="img/pot.png" alt="" />POT unclaimed; 4 of 10 validators unpaid; 93.7% of stake on one validator</td></tr>
         <tr><td>Code</td><td>MIT, <span class="mono">github.com/Timidan/portalnode</span>; tests pass on a fresh clone</td></tr>
       </table>
       <div class="pg">7 / 8</div>
