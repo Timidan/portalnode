@@ -21,7 +21,8 @@ No
 - GitHub: https://github.com/Timidan/portalnode
 - Project website (live demo): https://portalnode.timidan.xyz
 - Console: https://portalnode.timidan.xyz/console
-- Demo video: to come for the final
+- Demo video: https://youtu.be/jJg5hGhqhWE
+- Pitch deck (PDF): https://github.com/Timidan/portalnode/blob/main/docs/PortalNode-deck.pdf
 
 ## Tags
 Portaldot, staking, validator, node operations, keeper, monitoring

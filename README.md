@@ -7,7 +7,7 @@
 **Claims Portaldot staking rewards before they expire, and tells operators when their node needs attention.**<br>
 A keeper, a liveness watch and alerts, packaged to run next to any Portaldot node.
 
-[Live demo](https://portalnode.timidan.xyz) · [How it works](#how-it-works) · [Evidence](#evidence) · [Mainnet today](#mainnet-today) · [Quickstart](#quickstart) · [API](#api)
+[Live demo](https://portalnode.timidan.xyz) · [Video](https://youtu.be/jJg5hGhqhWE) · [Deck (PDF)](docs/PortalNode-deck.pdf) · [How it works](#how-it-works) · [Evidence](#evidence) · [Mainnet today](#mainnet-today) · [Quickstart](#quickstart) · [API](#api)
 
 ![Node.js 22](https://img.shields.io/badge/Node.js-22-3c873a?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
