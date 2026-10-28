@@ -67,7 +67,7 @@ Portaldot V3 staking and `pallet-revive`, Solidity, Foundry, `@polkadot/api`, Ty
 ### Next
 - Verify the guided Docker install end to end.
 - Package a V3 node the day a V3 binary is published.
-- Demo video and pitch deck for the final.
+- Pitch deck (PDF) for the final.
 - Keeper signing on mainnet stays off this round; enable it with the community.
 
 ## Team
