@@ -1,6 +1,6 @@
 # DoraHacks BUIDL form
 
-Paste field by field. Numbers as of 26 Oct; the live count is at https://portalnode.timidan.xyz/api/receipts.
+Paste field by field. Numbers as of 28 Oct; the live count is at https://portalnode.timidan.xyz/api/receipts.
 
 ## BUIDL name
 PortalNode
@@ -9,7 +9,7 @@ PortalNode
 `docs/assets/logo.png` (512 × 512)
 
 ## Vision
-Claims Portaldot staking rewards before they expire: 112 payouts claimed unattended on V3, and 118,837 POT still unclaimed on mainnet.
+Claims Portaldot staking rewards before they expire: 126 payouts claimed unattended on V3, and 140,040 POT still unclaimed on mainnet.
 
 ## Category / track
 Node Operations & Tooling
@@ -28,7 +28,7 @@ Portaldot, staking, validator, node operations, keeper, monitoring
 
 ## Description (Markdown)
 
-**PortalNode claims Portaldot staking rewards before they expire.** Since 18 Oct it has sent 112 payouts on the V3 testnet by itself, about a minute after each era closes. On mainnet, 118,837 POT sits unclaimed and 4 of 10 validators have claimed nothing in 84 eras.
+**PortalNode claims Portaldot staking rewards before they expire.** Since 18 Oct it has sent 126 payouts on the V3 testnet by itself, about a minute after each era closes. On mainnet, 140,040 POT sits unclaimed and 4 of 10 validators have claimed nothing in 84 eras.
 
 ### What sets PortalNode apart
 - **It sends the payouts.** Real `staking.payoutStakersByPage` transactions from a fee-only key, each settled from a finalized receipt and re-verified live. Monitoring says rewards are expiring; PortalNode claims them.
@@ -47,15 +47,15 @@ Portaldot pays staking rewards only when someone sends a payout transaction, and
 ### Evidence (Portaldot V3 testnet)
 Nobody was claiming on V3. On 18 Oct PortalNode claimed all 48 open payouts, then kept going unattended, about a minute after each era closed.
 
-- **112 payouts, 193.14 tPOT** paid to the validators by 26 Oct, every receipt re-verified against its finalized block.
-- Health contract: `0x072a1022f537a0da496801239725539101a41bb2`, deployed in block 181,327 (tx `0x2be541a9…`), reported every era since era 50 (era 57: paid through 56).
+- **126 payouts, 217.46 tPOT** paid to the validators by 28 Oct, every receipt re-verified against its finalized block.
+- Health contract: `0x072a1022f537a0da496801239725539101a41bb2`, deployed in block 181,327 (tx `0x2be541a9…`), reported every era since era 50 (era 64: paid through 63).
 - Keeper account: `5HCFicFwm7GoC8R4swpr2WTFFvkH1WkzJQdVcsq6jMFDQVk3`
 - First payout: [block 90,847 in Node Console](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x8a413a135c18c6ec2349f16a3c24aa635f359db1ce7cf642e66d89f04590f62f)
 - Live receipts: https://portalnode.timidan.xyz/api/receipts
 - Endpoint: `wss://test-node-v3.portaldot.dev`
 
-### Mainnet today (read-only, block 2,743,244)
-- **118,837 POT** unclaimed in the 84-era window; **6,084 POT** expires within 7 days.
+### Mainnet today (read-only, block 2,746,423)
+- **140,040 POT** unclaimed in the 84-era window; **6,084 POT** expires within 7 days.
 - **4 of 10** validators have claimed none of the last 84 eras.
 - **2,784,800 POT** is bonded to an inactive validator and earns nothing.
 - **93.7%** of stake sits with one validator; finality halts if 4 of 10 validators stop.
